@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Table, Button, Tag, Tabs, Modal, message, Typography, Space } from 'antd';
+import { Table, Button, Tag, Tabs, Modal, message, Typography, Space, Tooltip } from 'antd';
 import { DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -54,49 +54,54 @@ export default function RunsPage() {
   };
 
   const baseColumns = [
-    { title: '러너', dataIndex: 'nickname', width: 100, fixed: 'left' as const },
-    { title: '코드', dataIndex: 'user_code', width: 90 },
+    { title: '러너', dataIndex: 'nickname', width: 90, ellipsis: true, fixed: 'left' as const },
+    { title: '코드', dataIndex: 'user_code', width: 85 },
     {
-      title: '거리 (km)',
+      title: '거리',
       dataIndex: 'distance_meters',
-      width: 100,
-      render: (v: number) => v ? (v / 1000).toFixed(2) : '-',
+      width: 75,
+      render: (v: number) => v ? `${(v / 1000).toFixed(2)}km` : '-',
     },
     {
       title: '시간',
       dataIndex: 'duration_seconds',
-      width: 100,
+      width: 85,
       render: formatDuration,
     },
     {
       title: '페이스',
       dataIndex: 'avg_pace_seconds_per_km',
-      width: 90,
+      width: 70,
       render: formatPace,
     },
   ];
 
   const flaggedColumns = [
     ...baseColumns,
-    { title: '코스', dataIndex: 'course_title', width: 120, render: (v: string) => v || '-' },
+    { title: '코스', dataIndex: 'course_title', width: 100, ellipsis: true, render: (v: string) => v || '-' },
     {
       title: '신고 사유',
       dataIndex: 'flag_reason',
-      width: 140,
-      render: (v: string) => v ? <Tag color="red">{v}</Tag> : '-',
+      width: 200,
+      ellipsis: { showTitle: false },
+      render: (v: string) => v ? (
+        <Tooltip placement="topLeft" title={v}>
+          <Tag color="red" style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</Tag>
+        </Tooltip>
+      ) : '-',
     },
     {
       title: '일시',
       dataIndex: 'created_at',
-      width: 140,
+      width: 130,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
     },
     {
       title: '관리',
-      width: 150,
+      width: 130,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
-        <Space>
+        <Space size={4}>
           <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
             해제
           </Button>
@@ -113,21 +118,21 @@ export default function RunsPage() {
     {
       title: '신고',
       dataIndex: 'is_flagged',
-      width: 80,
-      render: (v: boolean) => v ? <Tag color="red">신고됨</Tag> : null,
+      width: 70,
+      render: (v: boolean) => v ? <Tag color="red">신고</Tag> : null,
     },
     {
       title: '일시',
       dataIndex: 'created_at',
-      width: 140,
+      width: 130,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
     },
     {
       title: '관리',
-      width: 150,
+      width: 130,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
-        <Space>
+        <Space size={4}>
           {record.is_flagged && (
             <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
               해제
@@ -157,7 +162,9 @@ export default function RunsPage() {
         columns={tab === 'flagged' ? flaggedColumns : allColumns}
         dataSource={data?.items ?? []}
         loading={isLoading}
-        scroll={{ x: tab === 'flagged' ? 1050 : 900 }}
+        scroll={{ x: tab === 'flagged' ? 970 : 750 }}
+        size="small"
+        tableLayout="fixed"
         pagination={{
           current: page,
           total: data?.total ?? 0,
