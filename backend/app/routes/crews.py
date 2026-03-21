@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel
 from sqlalchemy import text
 
 from app.auth import CurrentAdmin, DbSession, log_audit
+
+
+class AdminDeleteRequest(BaseModel):
+    reason: str
 
 router = APIRouter(prefix="/admin-api/crews", tags=["crews"])
 
@@ -88,7 +93,8 @@ async def get_crew_posts(
     posts = await db.execute(text("""
         SELECT cp.id, cp.title, cp.content, cp.post_type, cp.image_url, cp.image_urls,
                cp.like_count, cp.comment_count, cp.is_active, cp.created_at,
-               u.nickname, u.user_code
+               cp.admin_deleted_at, cp.admin_delete_reason,
+               cp.user_id, u.nickname, u.user_code
         FROM community_posts cp
         JOIN users u ON cp.user_id = u.id
         WHERE cp.crew_id = :crew_id
@@ -111,7 +117,9 @@ async def get_crew_posts(
 @router.get("/{crew_id}/posts/{post_id}/comments")
 async def get_post_comments(_admin: CurrentAdmin, db: DbSession, crew_id: str, post_id: str):
     comments = await db.execute(text("""
-        SELECT cc.id, cc.content, cc.created_at, u.nickname, u.user_code
+        SELECT cc.id, cc.content, cc.created_at,
+               cc.admin_deleted_at, cc.admin_delete_reason,
+               cc.user_id, u.nickname, u.user_code
         FROM community_comments cc
         JOIN users u ON cc.user_id = u.id
         WHERE cc.post_id = :post_id
@@ -119,6 +127,68 @@ async def get_post_comments(_admin: CurrentAdmin, db: DbSession, crew_id: str, p
     """), {"post_id": post_id})
 
     return [dict(r._mapping) for r in comments.all()]
+
+
+@router.post("/{crew_id}/posts/{post_id}/admin-delete")
+async def admin_delete_post(
+    crew_id: str, post_id: str, body: AdminDeleteRequest,
+    admin: CurrentAdmin, db: DbSession, request: Request,
+):
+    post = await db.execute(text(
+        "SELECT id, user_id, title, content FROM community_posts WHERE id = :id AND crew_id = :crew_id"
+    ), {"id": post_id, "crew_id": crew_id})
+    row = post.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    await db.execute(text("""
+        UPDATE community_posts
+        SET admin_deleted_at = NOW(), admin_delete_reason = :reason, is_active = false
+        WHERE id = :id
+    """), {"id": post_id, "reason": body.reason})
+
+    # 작성자에게 알림
+    await db.execute(text("""
+        INSERT INTO notifications (user_id, type, actor_id, target_id, target_type, data)
+        VALUES (:user_id, 'admin_delete', :user_id, :post_id, 'post',
+                jsonb_build_object('reason', :reason, 'content_preview', LEFT(:content, 50)))
+    """), {"user_id": str(row.user_id), "post_id": post_id, "reason": body.reason, "content": row.content})
+
+    await db.commit()
+    await log_audit(db, admin, "post.admin_delete", request, "post", post_id, {"reason": body.reason})
+
+    return {"message": "Post deleted"}
+
+
+@router.post("/{crew_id}/posts/{post_id}/comments/{comment_id}/admin-delete")
+async def admin_delete_comment(
+    crew_id: str, post_id: str, comment_id: str, body: AdminDeleteRequest,
+    admin: CurrentAdmin, db: DbSession, request: Request,
+):
+    comment = await db.execute(text(
+        "SELECT id, user_id, content FROM community_comments WHERE id = :id AND post_id = :post_id"
+    ), {"id": comment_id, "post_id": post_id})
+    row = comment.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    await db.execute(text("""
+        UPDATE community_comments
+        SET admin_deleted_at = NOW(), admin_delete_reason = :reason
+        WHERE id = :id
+    """), {"id": comment_id, "reason": body.reason})
+
+    # 작성자에게 알림
+    await db.execute(text("""
+        INSERT INTO notifications (user_id, type, actor_id, target_id, target_type, data)
+        VALUES (:user_id, 'admin_delete', :user_id, :comment_id, 'comment',
+                jsonb_build_object('reason', :reason, 'content_preview', LEFT(:content, 50)))
+    """), {"user_id": str(row.user_id), "comment_id": comment_id, "reason": body.reason, "content": row.content})
+
+    await db.commit()
+    await log_audit(db, admin, "comment.admin_delete", request, "comment", comment_id, {"reason": body.reason})
+
+    return {"message": "Comment deleted"}
 
 
 @router.delete("/{crew_id}")

@@ -1,18 +1,31 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Table, Button, Space, Spin, Typography, List, Modal, Image } from 'antd';
-import { ArrowLeftOutlined, MessageOutlined, LikeOutlined, PictureOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { Card, Descriptions, Tag, Table, Button, Space, Spin, Typography, List, Modal, Image, Input, Radio, message, Alert } from 'antd';
+import { ArrowLeftOutlined, MessageOutlined, LikeOutlined, PictureOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../api';
 
 const { Title, Text, Paragraph } = Typography;
 
+const DELETE_REASONS = [
+  '욕설/비방',
+  '광고/홍보',
+  '음란물/부적절한 콘텐츠',
+  '개인정보 노출',
+  '허위 정보',
+  '기타 (직접 입력)',
+];
+
 export default function CrewDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [postPage, setPostPage] = useState(1);
   const [commentModal, setCommentModal] = useState<{ postId: string; title: string } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ type: 'post' | 'comment'; postId: string; commentId?: string; content: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['crew', id],
@@ -30,6 +43,44 @@ export default function CrewDetailPage() {
     queryFn: () => api.get(`/admin-api/crews/${id}/posts/${commentModal!.postId}/comments`).then(r => r.data),
     enabled: !!commentModal,
   });
+
+  const deletePostMutation = useMutation({
+    mutationFn: ({ postId, reason }: { postId: string; reason: string }) =>
+      api.post(`/admin-api/crews/${id}/posts/${postId}/admin-delete`, { reason }),
+    onSuccess: () => {
+      message.success('게시글이 삭제되었습니다. 작성자에게 알림이 전송됩니다.');
+      queryClient.invalidateQueries({ queryKey: ['crew-posts'] });
+      setDeleteModal(null);
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: ({ postId, commentId, reason }: { postId: string; commentId: string; reason: string }) =>
+      api.post(`/admin-api/crews/${id}/posts/${postId}/comments/${commentId}/admin-delete`, { reason }),
+    onSuccess: () => {
+      message.success('댓글이 삭제되었습니다. 작성자에게 알림이 전송됩니다.');
+      queryClient.invalidateQueries({ queryKey: ['crew-post-comments'] });
+      setDeleteModal(null);
+    },
+  });
+
+  const handleDeleteConfirm = () => {
+    const reason = deleteReason === '기타 (직접 입력)' ? customReason : deleteReason;
+    if (!reason.trim()) { message.warning('삭제 사유를 입력해주세요.'); return; }
+    if (!deleteModal) return;
+
+    if (deleteModal.type === 'post') {
+      deletePostMutation.mutate({ postId: deleteModal.postId, reason });
+    } else {
+      deleteCommentMutation.mutate({ postId: deleteModal.postId, commentId: deleteModal.commentId!, reason });
+    }
+  };
+
+  const openDeleteModal = (type: 'post' | 'comment', postId: string, content: string, commentId?: string) => {
+    setDeleteReason('');
+    setCustomReason('');
+    setDeleteModal({ type, postId, commentId, content });
+  };
 
   if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
   if (!data) return null;
@@ -57,6 +108,43 @@ export default function CrewDetailPage() {
       render: (v: string) => dayjs(v).format('YYYY-MM-DD'),
     },
   ];
+
+  const renderPostContent = (item: any) => {
+    if (item.admin_deleted_at) {
+      return (
+        <div>
+          <Alert
+            type="error"
+            showIcon
+            message="관리자에 의해 삭제된 게시물입니다."
+            description={<>삭제 사유: {item.admin_delete_reason}<br />삭제일: {dayjs(item.admin_deleted_at).format('YYYY-MM-DD HH:mm')}</>}
+            style={{ marginBottom: 4 }}
+          />
+          <Text type="secondary" style={{ fontSize: 12 }}>{item.nickname} · {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}</Text>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {item.title && <div style={{ fontWeight: 500, marginBottom: 4 }}>{item.title}</div>}
+        <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 4 }}>{item.content}</Paragraph>
+        {(item.image_urls?.length > 0 || item.image_url) && (
+          <Space size={4} style={{ marginBottom: 4 }}>
+            <PictureOutlined />
+            <Image.PreviewGroup>
+              {(item.image_urls || [item.image_url]).filter(Boolean).map((url: string, i: number) => (
+                <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
+              ))}
+            </Image.PreviewGroup>
+          </Space>
+        )}
+        <div>
+          <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}</Text>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -139,6 +227,17 @@ export default function CrewDetailPage() {
                   >
                     {item.comment_count}
                   </Button>
+                  {!item.admin_deleted_at && (
+                    <Button
+                      type="link"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => openDeleteModal('post', item.id, item.content)}
+                    >
+                      삭제
+                    </Button>
+                  )}
                 </Space>,
               ]}
             >
@@ -148,34 +247,17 @@ export default function CrewDetailPage() {
                     <Text strong>{item.nickname}</Text>
                     <Text type="secondary" style={{ fontSize: 12 }}>{item.user_code}</Text>
                     <Tag>{item.post_type}</Tag>
-                    {!item.is_active && <Tag color="red">비활성</Tag>}
+                    {item.admin_deleted_at && <Tag color="red">관리자 삭제</Tag>}
                   </Space>
                 }
-                description={
-                  <div>
-                    {item.title && <div style={{ fontWeight: 500, marginBottom: 4 }}>{item.title}</div>}
-                    <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 4 }}>{item.content}</Paragraph>
-                    {(item.image_urls?.length > 0 || item.image_url) && (
-                      <Space size={4} style={{ marginBottom: 4 }}>
-                        <PictureOutlined />
-                        <Image.PreviewGroup>
-                          {(item.image_urls || [item.image_url]).filter(Boolean).map((url: string, i: number) => (
-                            <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
-                          ))}
-                        </Image.PreviewGroup>
-                      </Space>
-                    )}
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}</Text>
-                    </div>
-                  </div>
-                }
+                description={renderPostContent(item)}
               />
             </List.Item>
           )}
         />
       </Card>
 
+      {/* 댓글 모달 */}
       <Modal
         title={`댓글 - ${commentModal?.title ?? ''}`}
         open={!!commentModal}
@@ -188,19 +270,90 @@ export default function CrewDetailPage() {
           dataSource={comments ?? []}
           locale={{ emptyText: '댓글이 없습니다' }}
           renderItem={(c: any) => (
-            <List.Item>
+            <List.Item
+              actions={!c.admin_deleted_at ? [
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => openDeleteModal('comment', commentModal!.postId, c.content, c.id)}
+                >
+                  삭제
+                </Button>,
+              ] : undefined}
+            >
               <List.Item.Meta
-                title={<Space><Text strong>{c.nickname}</Text><Text type="secondary" style={{ fontSize: 12 }}>{c.user_code}</Text></Space>}
+                title={
+                  <Space>
+                    <Text strong>{c.nickname}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{c.user_code}</Text>
+                    {c.admin_deleted_at && <Tag color="red">관리자 삭제</Tag>}
+                  </Space>
+                }
                 description={
-                  <div>
-                    <div>{c.content}</div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(c.created_at).format('YYYY-MM-DD HH:mm')}</Text>
-                  </div>
+                  c.admin_deleted_at ? (
+                    <Alert
+                      type="error"
+                      showIcon
+                      message="관리자에 의해 삭제된 댓글입니다."
+                      description={`삭제 사유: ${c.admin_delete_reason}`}
+                      style={{ padding: '4px 8px' }}
+                    />
+                  ) : (
+                    <div>
+                      <div>{c.content}</div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(c.created_at).format('YYYY-MM-DD HH:mm')}</Text>
+                    </div>
+                  )
                 }
               />
             </List.Item>
           )}
         />
+      </Modal>
+
+      {/* 삭제 사유 모달 */}
+      <Modal
+        title={deleteModal?.type === 'post' ? '게시글 삭제' : '댓글 삭제'}
+        open={!!deleteModal}
+        onCancel={() => setDeleteModal(null)}
+        onOk={handleDeleteConfirm}
+        okText="삭제"
+        cancelText="취소"
+        okButtonProps={{
+          danger: true,
+          loading: deletePostMutation.isPending || deleteCommentMutation.isPending,
+          disabled: !deleteReason || (deleteReason === '기타 (직접 입력)' && !customReason.trim()),
+        }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <Text type="secondary">삭제 대상 내용:</Text>
+          <div style={{ background: '#f5f5f5', padding: 8, borderRadius: 4, marginTop: 4 }}>
+            <Paragraph ellipsis={{ rows: 2 }} style={{ margin: 0 }}>{deleteModal?.content}</Paragraph>
+          </div>
+        </div>
+        <div style={{ marginBottom: 8 }}><Text strong>삭제 사유를 선택해주세요:</Text></div>
+        <Radio.Group
+          value={deleteReason}
+          onChange={(e) => { setDeleteReason(e.target.value); if (e.target.value !== '기타 (직접 입력)') setCustomReason(''); }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+        >
+          {DELETE_REASONS.map((r) => (
+            <Radio key={r} value={r}>{r}</Radio>
+          ))}
+        </Radio.Group>
+        {deleteReason === '기타 (직접 입력)' && (
+          <Input.TextArea
+            placeholder="삭제 사유를 입력해주세요"
+            value={customReason}
+            onChange={(e) => setCustomReason(e.target.value)}
+            style={{ marginTop: 8 }}
+            rows={2}
+            maxLength={200}
+            showCount
+          />
+        )}
       </Modal>
     </div>
   );
