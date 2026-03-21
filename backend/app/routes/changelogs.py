@@ -8,7 +8,7 @@ router = APIRouter(prefix="/admin-api/changelogs", tags=["changelogs"])
 
 
 class ChangelogCreate(BaseModel):
-    category: str  # ui, db, feature
+    categories: list[str]  # ["ui", "db", "feature"]
     title: str
     description: str | None = None
     author: str | None = None
@@ -28,10 +28,10 @@ async def list_changelogs(
     limit: int = Query(20, ge=1, le=100),
 ):
     offset = (page - 1) * limit
-    where = "WHERE category = :category" if category else ""
+    where = "WHERE c.categories @> :cat_filter::jsonb" if category else ""
     params: dict = {"limit": limit, "offset": offset}
     if category:
-        params["category"] = category
+        params["cat_filter"] = f'["{category}"]'
 
     rows = await db.execute(text(f"""
         SELECT c.*, (SELECT COUNT(*) FROM admin_changelog_comments cc WHERE cc.changelog_id = c.id) as comment_count
@@ -41,7 +41,7 @@ async def list_changelogs(
         LIMIT :limit OFFSET :offset
     """), params)
 
-    count_params = {"category": category} if category else {}
+    count_params = {"cat_filter": f'["{category}"]'} if category else {}
     count = await db.execute(text(f"SELECT COUNT(*) FROM admin_changelogs c {where}"), count_params)
 
     return {
@@ -54,13 +54,14 @@ async def list_changelogs(
 
 @router.post("", status_code=201)
 async def create_changelog(body: ChangelogCreate, admin: CurrentAdmin, db: DbSession):
+    import json
     author = body.author or admin.name
     result = await db.execute(text("""
-        INSERT INTO admin_changelogs (category, title, description, author, version)
-        VALUES (:category, :title, :description, :author, :version)
-        RETURNING id, category, title, description, author, version, created_at
+        INSERT INTO admin_changelogs (categories, title, description, author, version)
+        VALUES (:categories::jsonb, :title, :description, :author, :version)
+        RETURNING id, categories, title, description, author, version, created_at
     """), {
-        "category": body.category,
+        "categories": json.dumps(body.categories),
         "title": body.title,
         "description": body.description,
         "author": author,

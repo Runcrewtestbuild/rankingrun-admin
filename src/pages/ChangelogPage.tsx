@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Card, Tabs, List, Button, Modal, Input, Select, Tag, Space, Typography, message, Popconfirm,
+  Card, Tabs, List, Button, Modal, Input, Checkbox, Tag, Space, Typography, message, Popconfirm,
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, MessageOutlined, DesktopOutlined, DatabaseOutlined, RocketOutlined,
@@ -33,8 +33,7 @@ export default function ChangelogPage() {
   const [commentOpen, setCommentOpen] = useState<{ id: string; title: string } | null>(null);
   const [newComment, setNewComment] = useState('');
 
-  // Create form
-  const [form, setForm] = useState({ category: 'feature', title: '', description: '', version: '' });
+  const [form, setForm] = useState({ categories: ['feature'] as string[], title: '', description: '', version: '' });
 
   const { data, isLoading } = useQuery({
     queryKey: ['changelogs', category, page],
@@ -53,7 +52,7 @@ export default function ChangelogPage() {
       message.success('변경 로그가 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['changelogs'] });
       setCreateOpen(false);
-      setForm({ category: 'feature', title: '', description: '', version: '' });
+      setForm({ categories: ['feature'], title: '', description: '', version: '' });
     },
   });
 
@@ -117,13 +116,16 @@ export default function ChangelogPage() {
           showTotal: (total: number) => `총 ${total}건`,
         } : false}
         renderItem={(item: any) => {
-          const meta = categoryMeta[item.category] || { color: 'default', label: item.category };
+          const cats: string[] = item.categories || [];
           return (
             <Card size="small" style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
                   <Space style={{ marginBottom: 4 }}>
-                    <Tag color={meta.color}>{meta.label}</Tag>
+                    {cats.map((cat) => {
+                      const meta = categoryMeta[cat] || { color: 'default', label: cat };
+                      return <Tag key={cat} color={meta.color}>{meta.label}</Tag>;
+                    })}
                     <Text strong>{item.title}</Text>
                     {item.version && <Tag>{item.version}</Tag>}
                   </Space>
@@ -165,6 +167,7 @@ export default function ChangelogPage() {
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={() => {
+          if (!form.categories.length) { message.warning('분류를 하나 이상 선택해주세요.'); return; }
           if (!form.title.trim()) { message.warning('제목을 입력해주세요.'); return; }
           createMutation.mutate(form);
         }}
@@ -174,17 +177,18 @@ export default function ChangelogPage() {
       >
         <Space direction="vertical" style={{ width: '100%' }} size={12}>
           <div>
-            <Text strong>분류</Text>
-            <Select
-              value={form.category}
-              onChange={(v) => setForm({ ...form, category: v })}
-              style={{ width: '100%', marginTop: 4 }}
-              options={[
-                { value: 'feature', label: '기능 변경' },
-                { value: 'ui', label: 'UI 변경' },
-                { value: 'db', label: 'DB 변경' },
-              ]}
-            />
+            <Text strong>분류 (복수 선택 가능)</Text>
+            <div style={{ marginTop: 8 }}>
+              <Checkbox.Group
+                value={form.categories}
+                onChange={(v) => setForm({ ...form, categories: v as string[] })}
+                options={[
+                  { value: 'feature', label: '기능 변경' },
+                  { value: 'ui', label: 'UI 변경' },
+                  { value: 'db', label: 'DB 변경' },
+                ]}
+              />
+            </div>
           </div>
           <div>
             <Text strong>제목</Text>
