@@ -8,6 +8,7 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   NotificationOutlined,
+  HistoryOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -28,6 +29,7 @@ const menuItems = [
   { key: '/runs', icon: <ThunderboltOutlined />, label: '런 기록' },
   { key: '/crews', icon: <TeamOutlined />, label: '크루' },
   { key: '/announcements', icon: <NotificationOutlined />, label: '공지사항' },
+  { key: '/changelog', icon: <HistoryOutlined />, label: '변경 로그' },
 ];
 
 export default function AdminLayout({ admin, onLogout }: Props) {

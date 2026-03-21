@@ -13,6 +13,7 @@ import RunDetailPage from './pages/RunDetailPage';
 import CrewsPage from './pages/CrewsPage';
 import CrewDetailPage from './pages/CrewDetailPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
+import ChangelogPage from './pages/ChangelogPage';
 
 export default function App() {
   const { admin, loading, login, logout, isAuthenticated } = useAuth();
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/crews" element={<CrewsPage />} />
         <Route path="/crews/:id" element={<CrewDetailPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
