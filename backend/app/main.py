@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="RUNVS Admin API", lifespan=lifespan)
+app = FastAPI(title="RUNVS Admin API", lifespan=lifespan, redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
