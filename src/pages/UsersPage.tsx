@@ -19,58 +19,65 @@ export default function UsersPage() {
 
   const banMutation = useMutation({
     mutationFn: (userId: string) => api.post(`/admin-api/users/${userId}/ban`, { reason: 'Admin action' }),
-    onSuccess: () => { message.success('User banned'); queryClient.invalidateQueries({ queryKey: ['users'] }); },
+    onSuccess: () => { message.success('차단 완료'); queryClient.invalidateQueries({ queryKey: ['users'] }); },
   });
 
   const unbanMutation = useMutation({
     mutationFn: (userId: string) => api.post(`/admin-api/users/${userId}/unban`),
-    onSuccess: () => { message.success('User unbanned'); queryClient.invalidateQueries({ queryKey: ['users'] }); },
+    onSuccess: () => { message.success('차단 해제 완료'); queryClient.invalidateQueries({ queryKey: ['users'] }); },
   });
 
   const handleBan = (userId: string, nickname: string) => {
     Modal.confirm({
-      title: `Ban "${nickname}"?`,
+      title: `"${nickname}" 유저를 차단하시겠습니까?`,
+      okText: '차단',
+      cancelText: '취소',
       onOk: () => banMutation.mutateAsync(userId),
     });
   };
 
   const columns = [
-    { title: 'Code', dataIndex: 'user_code', width: 100 },
-    { title: 'Nickname', dataIndex: 'nickname' },
-    { title: 'Email', dataIndex: 'email', ellipsis: true },
+    { title: '코드', dataIndex: 'user_code', width: 100 },
+    { title: '닉네임', dataIndex: 'nickname', width: 120 },
+    { title: '이메일', dataIndex: 'email', ellipsis: true, width: 180 },
     {
-      title: 'Runs',
+      title: '런 횟수',
       dataIndex: 'total_runs',
+      width: 90,
       sorter: (a: any, b: any) => a.total_runs - b.total_runs,
     },
     {
-      title: 'Distance (km)',
+      title: '거리 (km)',
       dataIndex: 'total_distance_meters',
+      width: 100,
       render: (v: number) => v ? (v / 1000).toFixed(1) : '0',
     },
-    { title: 'Level', dataIndex: 'runner_level' },
+    { title: '레벨', dataIndex: 'runner_level', width: 70 },
     {
-      title: 'Status',
+      title: '상태',
       dataIndex: 'is_banned',
+      width: 80,
       render: (banned: boolean) =>
-        banned ? <Tag color="red">Banned</Tag> : <Tag color="green">Active</Tag>,
+        banned ? <Tag color="red">차단</Tag> : <Tag color="green">정상</Tag>,
     },
     {
-      title: 'Joined',
+      title: '가입일',
       dataIndex: 'created_at',
+      width: 110,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD'),
     },
     {
-      title: 'Action',
+      title: '관리',
+      width: 100,
       render: (_: any, record: any) => (
         <Space>
           {record.is_banned ? (
             <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unbanMutation.mutate(record.id)}>
-              Unban
+              해제
             </Button>
           ) : (
             <Button size="small" danger icon={<StopOutlined />} onClick={() => handleBan(record.id, record.nickname)}>
-              Ban
+              차단
             </Button>
           )}
         </Space>
@@ -81,9 +88,9 @@ export default function UsersPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4}>Users</Title>
+        <Title level={4}>유저 관리</Title>
         <Input
-          placeholder="Search by nickname, email, code"
+          placeholder="닉네임, 이메일, 코드로 검색"
           prefix={<SearchOutlined />}
           style={{ width: 300 }}
           allowClear
@@ -95,12 +102,13 @@ export default function UsersPage() {
         columns={columns}
         dataSource={data?.items ?? []}
         loading={isLoading}
+        scroll={{ x: 900 }}
         pagination={{
           current: page,
           total: data?.total ?? 0,
           pageSize: 20,
           onChange: setPage,
-          showTotal: (total) => `${total} users`,
+          showTotal: (total) => `총 ${total}명`,
         }}
       />
     </div>

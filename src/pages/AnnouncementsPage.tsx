@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Table, Button, Tag, Modal, Form, Input, message, Typography, Space, Switch } from 'antd';
+import { Table, Button, Modal, Form, Input, message, Typography, Space, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -22,17 +22,17 @@ export default function AnnouncementsPage() {
 
   const createMutation = useMutation({
     mutationFn: (values: any) => api.post('/admin-api/announcements', values),
-    onSuccess: () => { message.success('Created'); closeModal(); queryClient.invalidateQueries({ queryKey: ['announcements'] }); },
+    onSuccess: () => { message.success('생성 완료'); closeModal(); queryClient.invalidateQueries({ queryKey: ['announcements'] }); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...values }: any) => api.patch(`/admin-api/announcements/${id}`, values),
-    onSuccess: () => { message.success('Updated'); closeModal(); queryClient.invalidateQueries({ queryKey: ['announcements'] }); },
+    onSuccess: () => { message.success('수정 완료'); closeModal(); queryClient.invalidateQueries({ queryKey: ['announcements'] }); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin-api/announcements/${id}`),
-    onSuccess: () => { message.success('Deleted'); queryClient.invalidateQueries({ queryKey: ['announcements'] }); },
+    onSuccess: () => { message.success('삭제 완료'); queryClient.invalidateQueries({ queryKey: ['announcements'] }); },
   });
 
   const openCreate = () => { setEditing(null); form.resetFields(); setModalOpen(true); };
@@ -49,10 +49,11 @@ export default function AnnouncementsPage() {
   };
 
   const columns = [
-    { title: 'Title', dataIndex: 'title', ellipsis: true },
+    { title: '제목', dataIndex: 'title', ellipsis: true },
     {
-      title: 'Active',
+      title: '활성',
       dataIndex: 'is_active',
+      width: 80,
       render: (v: boolean, record: any) => (
         <Switch
           checked={v}
@@ -62,22 +63,29 @@ export default function AnnouncementsPage() {
       ),
     },
     {
-      title: 'Created',
+      title: '생성일',
       dataIndex: 'created_at',
+      width: 150,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
     },
     {
-      title: 'Action',
+      title: '관리',
+      width: 150,
       render: (_: any, record: any) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>Edit</Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>수정</Button>
           <Button
             size="small"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => Modal.confirm({ title: 'Delete?', onOk: () => deleteMutation.mutateAsync(record.id) })}
+            onClick={() => Modal.confirm({
+              title: '삭제하시겠습니까?',
+              okText: '삭제',
+              cancelText: '취소',
+              onOk: () => deleteMutation.mutateAsync(record.id),
+            })}
           >
-            Delete
+            삭제
           </Button>
         </Space>
       ),
@@ -87,8 +95,8 @@ export default function AnnouncementsPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4}>Announcements</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>New</Button>
+        <Title level={4}>공지사항</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>새 공지</Button>
       </div>
       <Table
         rowKey="id"
@@ -100,20 +108,23 @@ export default function AnnouncementsPage() {
           total: data?.total ?? 0,
           pageSize: 20,
           onChange: setPage,
+          showTotal: (total) => `총 ${total}개`,
         }}
       />
       <Modal
-        title={editing ? 'Edit Announcement' : 'New Announcement'}
+        title={editing ? '공지 수정' : '새 공지 작성'}
         open={modalOpen}
         onOk={handleSubmit}
         onCancel={closeModal}
+        okText={editing ? '수정' : '생성'}
+        cancelText="취소"
         confirmLoading={createMutation.isPending || updateMutation.isPending}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+          <Form.Item name="title" label="제목" rules={[{ required: true, message: '제목을 입력하세요' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+          <Form.Item name="content" label="내용" rules={[{ required: true, message: '내용을 입력하세요' }]}>
             <TextArea rows={4} />
           </Form.Item>
         </Form>

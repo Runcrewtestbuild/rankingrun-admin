@@ -36,68 +36,105 @@ export default function RunsPage() {
 
   const unflagMutation = useMutation({
     mutationFn: (id: string) => api.post(`/admin-api/runs/${id}/unflag`),
-    onSuccess: () => { message.success('Unflagged'); queryClient.invalidateQueries({ queryKey: ['runs'] }); },
+    onSuccess: () => { message.success('신고 해제 완료'); queryClient.invalidateQueries({ queryKey: ['runs'] }); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin-api/runs/${id}`),
-    onSuccess: () => { message.success('Deleted'); queryClient.invalidateQueries({ queryKey: ['runs'] }); },
+    onSuccess: () => { message.success('삭제 완료'); queryClient.invalidateQueries({ queryKey: ['runs'] }); },
   });
 
   const handleDelete = (id: string) => {
-    Modal.confirm({ title: 'Delete this run record?', onOk: () => deleteMutation.mutateAsync(id) });
+    Modal.confirm({
+      title: '이 런 기록을 삭제하시겠습니까?',
+      okText: '삭제',
+      cancelText: '취소',
+      onOk: () => deleteMutation.mutateAsync(id),
+    });
   };
 
-  const columns = [
-    { title: 'Runner', dataIndex: 'nickname' },
-    { title: 'Code', dataIndex: 'user_code', width: 90 },
+  const baseColumns = [
+    { title: '러너', dataIndex: 'nickname', width: 100, fixed: 'left' as const },
+    { title: '코드', dataIndex: 'user_code', width: 90 },
     {
-      title: 'Distance (km)',
+      title: '거리 (km)',
       dataIndex: 'distance_meters',
+      width: 100,
       render: (v: number) => v ? (v / 1000).toFixed(2) : '-',
     },
     {
-      title: 'Duration',
+      title: '시간',
       dataIndex: 'duration_seconds',
+      width: 100,
       render: formatDuration,
     },
     {
-      title: 'Pace',
+      title: '페이스',
       dataIndex: 'avg_pace_seconds_per_km',
+      width: 90,
       render: formatPace,
     },
-    ...(tab === 'flagged'
-      ? [
-          { title: 'Course', dataIndex: 'course_title', render: (v: string) => v || '-' },
-          {
-            title: 'Flag',
-            dataIndex: 'flag_reason',
-            render: (v: string) => <Tag color="red">{v}</Tag>,
-          },
-        ]
-      : [
-          {
-            title: 'Flagged',
-            dataIndex: 'is_flagged',
-            render: (v: boolean) => v ? <Tag color="red">Flagged</Tag> : null,
-          },
-        ]),
+  ];
+
+  const flaggedColumns = [
+    ...baseColumns,
+    { title: '코스', dataIndex: 'course_title', width: 120, render: (v: string) => v || '-' },
     {
-      title: 'Date',
+      title: '신고 사유',
+      dataIndex: 'flag_reason',
+      width: 140,
+      render: (v: string) => v ? <Tag color="red">{v}</Tag> : '-',
+    },
+    {
+      title: '일시',
       dataIndex: 'created_at',
+      width: 140,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
     },
     {
-      title: 'Action',
+      title: '관리',
+      width: 150,
+      fixed: 'right' as const,
+      render: (_: any, record: any) => (
+        <Space>
+          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
+            해제
+          </Button>
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
+            삭제
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  const allColumns = [
+    ...baseColumns,
+    {
+      title: '신고',
+      dataIndex: 'is_flagged',
+      width: 80,
+      render: (v: boolean) => v ? <Tag color="red">신고됨</Tag> : null,
+    },
+    {
+      title: '일시',
+      dataIndex: 'created_at',
+      width: 140,
+      render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
+    },
+    {
+      title: '관리',
+      width: 150,
+      fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space>
           {record.is_flagged && (
             <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
-              Unflag
+              해제
             </Button>
           )}
           <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
-            Delete
+            삭제
           </Button>
         </Space>
       ),
@@ -106,26 +143,27 @@ export default function RunsPage() {
 
   return (
     <div>
-      <Title level={4}>Run Records</Title>
+      <Title level={4}>런 기록</Title>
       <Tabs
         activeKey={tab}
         onChange={(k) => { setTab(k as any); setPage(1); }}
         items={[
-          { key: 'flagged', label: 'Flagged Runs' },
-          { key: 'all', label: 'All Runs' },
+          { key: 'flagged', label: '신고된 런' },
+          { key: 'all', label: '전체 런' },
         ]}
       />
       <Table
         rowKey="id"
-        columns={columns}
+        columns={tab === 'flagged' ? flaggedColumns : allColumns}
         dataSource={data?.items ?? []}
         loading={isLoading}
+        scroll={{ x: tab === 'flagged' ? 1050 : 900 }}
         pagination={{
           current: page,
           total: data?.total ?? 0,
           pageSize: 20,
           onChange: setPage,
-          showTotal: (total) => `${total} runs`,
+          showTotal: (total) => `총 ${total}건`,
         }}
       />
     </div>

@@ -7,11 +7,11 @@ import { api } from '../api';
 
 const { Title } = Typography;
 
-const difficultyColor: Record<string, string> = {
-  easy: 'green',
-  moderate: 'blue',
-  hard: 'orange',
-  extreme: 'red',
+const difficultyLabel: Record<string, { color: string; text: string }> = {
+  easy: { color: 'green', text: '쉬움' },
+  moderate: { color: 'blue', text: '보통' },
+  hard: { color: 'orange', text: '어려움' },
+  extreme: { color: 'red', text: '극한' },
 };
 
 export default function CoursesPage() {
@@ -26,50 +26,60 @@ export default function CoursesPage() {
 
   const toggleMutation = useMutation({
     mutationFn: (id: string) => api.post(`/admin-api/courses/${id}/toggle-public`),
-    onSuccess: () => { message.success('Updated'); queryClient.invalidateQueries({ queryKey: ['courses'] }); },
+    onSuccess: () => { message.success('변경 완료'); queryClient.invalidateQueries({ queryKey: ['courses'] }); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin-api/courses/${id}`),
-    onSuccess: () => { message.success('Deleted'); queryClient.invalidateQueries({ queryKey: ['courses'] }); },
+    onSuccess: () => { message.success('삭제 완료'); queryClient.invalidateQueries({ queryKey: ['courses'] }); },
   });
 
   const handleDelete = (id: string, title: string) => {
     Modal.confirm({
-      title: `Delete "${title}"?`,
-      content: 'This will also delete associated rankings and stats.',
+      title: `"${title}" 코스를 삭제하시겠습니까?`,
+      content: '관련 랭킹과 통계도 함께 삭제됩니다.',
+      okText: '삭제',
+      cancelText: '취소',
       onOk: () => deleteMutation.mutateAsync(id),
     });
   };
 
   const columns = [
-    { title: 'Title', dataIndex: 'title', ellipsis: true },
+    { title: '코스명', dataIndex: 'title', ellipsis: true, width: 160 },
     {
-      title: 'Distance (km)',
+      title: '거리 (km)',
       dataIndex: 'distance_meters',
+      width: 100,
       render: (v: number) => v ? (v / 1000).toFixed(1) : '-',
-      sorter: (a: any, b: any) => a.distance_meters - b.distance_meters,
+      sorter: (a: any, b: any) => (a.distance_meters ?? 0) - (b.distance_meters ?? 0),
     },
     {
-      title: 'Difficulty',
+      title: '난이도',
       dataIndex: 'difficulty',
-      render: (v: string) => v ? <Tag color={difficultyColor[v] || 'default'}>{v}</Tag> : '-',
+      width: 90,
+      render: (v: string) => {
+        const d = difficultyLabel[v];
+        return d ? <Tag color={d.color}>{d.text}</Tag> : '-';
+      },
     },
-    { title: 'Creator', dataIndex: 'creator_nickname' },
-    { title: 'Runs', dataIndex: 'total_runs', render: (v: number) => v ?? 0 },
-    { title: 'Runners', dataIndex: 'unique_runners', render: (v: number) => v ?? 0 },
+    { title: '생성자', dataIndex: 'creator_nickname', width: 100 },
+    { title: '런 횟수', dataIndex: 'total_runs', width: 80, render: (v: number) => v ?? 0 },
+    { title: '러너 수', dataIndex: 'unique_runners', width: 80, render: (v: number) => v ?? 0 },
     {
-      title: 'Public',
+      title: '공개',
       dataIndex: 'is_public',
-      render: (v: boolean) => v ? <Tag color="green">Public</Tag> : <Tag>Private</Tag>,
+      width: 80,
+      render: (v: boolean) => v ? <Tag color="green">공개</Tag> : <Tag>비공개</Tag>,
     },
     {
-      title: 'Created',
+      title: '생성일',
       dataIndex: 'created_at',
+      width: 110,
       render: (v: string) => dayjs(v).format('YYYY-MM-DD'),
     },
     {
-      title: 'Action',
+      title: '관리',
+      width: 140,
       render: (_: any, record: any) => (
         <Space>
           <Button
@@ -77,10 +87,10 @@ export default function CoursesPage() {
             icon={record.is_public ? <EyeInvisibleOutlined /> : <EyeOutlined />}
             onClick={() => toggleMutation.mutate(record.id)}
           >
-            {record.is_public ? 'Hide' : 'Show'}
+            {record.is_public ? '숨기기' : '공개'}
           </Button>
           <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id, record.title)}>
-            Delete
+            삭제
           </Button>
         </Space>
       ),
@@ -90,9 +100,9 @@ export default function CoursesPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4}>Courses</Title>
+        <Title level={4}>코스 관리</Title>
         <Input
-          placeholder="Search by title"
+          placeholder="코스명으로 검색"
           prefix={<SearchOutlined />}
           style={{ width: 300 }}
           allowClear
@@ -104,12 +114,13 @@ export default function CoursesPage() {
         columns={columns}
         dataSource={data?.items ?? []}
         loading={isLoading}
+        scroll={{ x: 950 }}
         pagination={{
           current: page,
           total: data?.total ?? 0,
           pageSize: 20,
           onChange: setPage,
-          showTotal: (total) => `${total} courses`,
+          showTotal: (total) => `총 ${total}개`,
         }}
       />
     </div>

@@ -6,6 +6,7 @@ import {
   UserOutlined,
   EnvironmentOutlined,
   ThunderboltOutlined,
+  TeamOutlined,
   NotificationOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -21,11 +22,12 @@ interface Props {
 }
 
 const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/users', icon: <UserOutlined />, label: 'Users' },
-  { key: '/courses', icon: <EnvironmentOutlined />, label: 'Courses' },
-  { key: '/runs', icon: <ThunderboltOutlined />, label: 'Runs' },
-  { key: '/announcements', icon: <NotificationOutlined />, label: 'Announcements' },
+  { key: '/', icon: <DashboardOutlined />, label: '대시보드' },
+  { key: '/users', icon: <UserOutlined />, label: '유저' },
+  { key: '/courses', icon: <EnvironmentOutlined />, label: '코스' },
+  { key: '/runs', icon: <ThunderboltOutlined />, label: '런 기록' },
+  { key: '/crews', icon: <TeamOutlined />, label: '크루' },
+  { key: '/announcements', icon: <NotificationOutlined />, label: '공지사항' },
 ];
 
 export default function AdminLayout({ admin, onLogout }: Props) {
@@ -38,7 +40,7 @@ export default function AdminLayout({ admin, onLogout }: Props) {
       <Sider collapsible collapsed={collapsed} trigger={null} width={220}>
         <div style={{ padding: '16px', textAlign: 'center' }}>
           <Text strong style={{ color: '#fff', fontSize: collapsed ? 14 : 18 }}>
-            {collapsed ? 'RV' : 'RUNVS Admin'}
+            {collapsed ? 'RV' : 'RUNVS 관리자'}
           </Text>
         </div>
         <Menu
@@ -70,7 +72,7 @@ export default function AdminLayout({ admin, onLogout }: Props) {
               items: [
                 { key: 'role', label: admin.role, disabled: true },
                 { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', onClick: onLogout },
+                { key: 'logout', icon: <LogoutOutlined />, label: '로그아웃', onClick: onLogout },
               ],
             }}
           >

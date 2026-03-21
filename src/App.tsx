@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import CoursesPage from './pages/CoursesPage';
 import RunsPage from './pages/RunsPage';
+import CrewsPage from './pages/CrewsPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/runs" element={<RunsPage />} />
+        <Route path="/crews" element={<CrewsPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

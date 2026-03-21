@@ -30,38 +30,38 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <Title level={4}>Dashboard</Title>
+      <Title level={4}>대시보드</Title>
 
       <Row gutter={[16, 16]}>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="Total Users" value={stats?.totalUsers ?? '-'} prefix={<UserOutlined />} />
+            <Statistic title="전체 유저" value={stats?.totalUsers ?? '-'} prefix={<UserOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="New Today" value={stats?.newUsersToday ?? '-'} prefix={<UserOutlined />} />
+            <Statistic title="오늘 가입" value={stats?.newUsersToday ?? '-'} prefix={<UserOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="Total Runs" value={stats?.totalRuns ?? '-'} prefix={<ThunderboltOutlined />} />
+            <Statistic title="전체 런" value={stats?.totalRuns ?? '-'} prefix={<ThunderboltOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="Runs Today" value={stats?.runsToday ?? '-'} prefix={<ThunderboltOutlined />} />
+            <Statistic title="오늘 런" value={stats?.runsToday ?? '-'} prefix={<ThunderboltOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="Courses" value={stats?.totalCourses ?? '-'} prefix={<EnvironmentOutlined />} />
+            <Statistic title="코스" value={stats?.totalCourses ?? '-'} prefix={<EnvironmentOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
             <Statistic
-              title="Flagged Runs"
+              title="신고된 런"
               value={stats?.flaggedRuns ?? '-'}
               prefix={<FlagOutlined />}
               valueStyle={{ color: stats?.flaggedRuns > 0 ? '#ff4d4f' : undefined }}
@@ -70,19 +70,19 @@ export default function DashboardPage() {
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="Crews" value={stats?.totalCrews ?? '-'} prefix={<TeamOutlined />} />
+            <Statistic title="크루" value={stats?.totalCrews ?? '-'} prefix={<TeamOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={8} lg={6}>
           <Card>
-            <Statistic title="New This Week" value={stats?.newUsersWeek ?? '-'} prefix={<UserOutlined />} />
+            <Statistic title="이번주 가입" value={stats?.newUsersWeek ?? '-'} prefix={<UserOutlined />} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="Sign-up Trend (30d)">
+          <Card title="가입 추이 (30일)">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={signupTrend ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -95,7 +95,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Run Trend (30d)">
+          <Card title="런 추이 (30일)">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={runTrend ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
