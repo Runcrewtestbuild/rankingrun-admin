@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     ADMIN_JWT_SECRET: str = "admin-dev-secret-change-me"
     ADMIN_JWT_ALGORITHM: str = "HS256"
     ADMIN_JWT_EXPIRE_HOURS: int = 24
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "https://admin.runvs.run"]
+    CORS_ORIGINS: list[str] = ["*"]
 
     class Config:
         env_file = ".env"
