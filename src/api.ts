@@ -3,7 +3,7 @@ import axios from 'axios';
 const TOKEN_KEY = 'runvs_admin_token';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || 'https://admin.runvs.run',
   timeout: 30000,
 });
 

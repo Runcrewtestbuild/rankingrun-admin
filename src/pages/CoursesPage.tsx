@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, Input, Button, Tag, Modal, message, Typography, Space } from 'antd';
 import { SearchOutlined, EyeOutlined, EyeInvisibleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ const difficultyLabel: Record<string, { color: string; text: string }> = {
 export default function CoursesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -45,7 +47,15 @@ export default function CoursesPage() {
   };
 
   const columns = [
-    { title: '코스명', dataIndex: 'title', ellipsis: true, width: 160 },
+    {
+      title: '코스명',
+      dataIndex: 'title',
+      ellipsis: true,
+      width: 160,
+      render: (v: string, record: any) => (
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate(`/courses/${record.id}`)}>{v}</Button>
+      ),
+    },
     {
       title: '거리 (km)',
       dataIndex: 'distance_meters',

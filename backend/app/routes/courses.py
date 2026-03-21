@@ -45,6 +45,47 @@ async def list_courses(
     }
 
 
+@router.get("/{course_id}")
+async def get_course(_admin: CurrentAdmin, db: DbSession, course_id: str):
+    course = await db.execute(text("""
+        SELECT c.id, c.title, c.description, c.distance_meters, c.difficulty,
+               c.course_type, c.lap_count, c.elevation_gain_meters,
+               c.is_public, c.tags, c.thumbnail_url,
+               c.created_at, c.updated_at,
+               u.nickname as creator_nickname, u.user_code as creator_code
+        FROM courses c
+        LEFT JOIN users u ON c.creator_id = u.id
+        WHERE c.id = :id
+    """), {"id": course_id})
+
+    row = course.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    stats = await db.execute(text("""
+        SELECT total_runs, unique_runners, avg_duration_seconds,
+               avg_pace_seconds_per_km, best_duration_seconds,
+               best_pace_seconds_per_km, completion_rate
+        FROM course_stats WHERE course_id = :id
+    """), {"id": course_id})
+    stats_row = stats.first()
+
+    recent_runs = await db.execute(text("""
+        SELECT r.id, r.distance_meters, r.duration_seconds, r.avg_pace_seconds_per_km,
+               r.is_flagged, r.created_at, u.nickname
+        FROM run_records r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.course_id = :id
+        ORDER BY r.created_at DESC LIMIT 10
+    """), {"id": course_id})
+
+    return {
+        **dict(row._mapping),
+        "stats": dict(stats_row._mapping) if stats_row else None,
+        "recentRuns": [dict(r._mapping) for r in recent_runs.all()],
+    }
+
+
 @router.post("/{course_id}/toggle-public")
 async def toggle_public(course_id: str, admin: CurrentAdmin, db: DbSession, request: Request):
     result = await db.execute(text("""

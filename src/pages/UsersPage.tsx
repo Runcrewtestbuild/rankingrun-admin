@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, Input, Button, Tag, Modal, message, Typography, Space } from 'antd';
 import { SearchOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +11,7 @@ const { Title } = Typography;
 export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -38,7 +40,14 @@ export default function UsersPage() {
 
   const columns = [
     { title: '코드', dataIndex: 'user_code', width: 100 },
-    { title: '닉네임', dataIndex: 'nickname', width: 120 },
+    {
+      title: '닉네임',
+      dataIndex: 'nickname',
+      width: 120,
+      render: (v: string, record: any) => (
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate(`/users/${record.id}`)}>{v || '-'}</Button>
+      ),
+    },
     { title: '이메일', dataIndex: 'email', ellipsis: true, width: 180 },
     {
       title: '런 횟수',

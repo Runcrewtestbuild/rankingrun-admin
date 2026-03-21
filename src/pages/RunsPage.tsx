@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, Button, Tag, Tabs, Modal, message, Typography, Space, Tooltip } from 'antd';
-import { DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { DeleteOutlined, CheckCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../api';
@@ -25,6 +26,7 @@ function formatDuration(seconds: number | null) {
 export default function RunsPage() {
   const [tab, setTab] = useState<'flagged' | 'all'>('flagged');
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const endpoint = tab === 'flagged' ? '/admin-api/runs/flagged' : '/admin-api/runs';
@@ -98,10 +100,11 @@ export default function RunsPage() {
     },
     {
       title: '관리',
-      width: 130,
+      width: 160,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space size={4}>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/runs/${record.id}`)}>상세</Button>
           <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
             해제
           </Button>
@@ -129,10 +132,11 @@ export default function RunsPage() {
     },
     {
       title: '관리',
-      width: 130,
+      width: 160,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space size={4}>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/runs/${record.id}`)}>상세</Button>
           {record.is_flagged && (
             <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
               해제

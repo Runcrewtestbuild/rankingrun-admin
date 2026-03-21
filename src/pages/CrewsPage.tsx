@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, Input, Button, Tag, Modal, message, Typography, Space } from 'antd';
 import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +11,7 @@ const { Title } = Typography;
 export default function CrewsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -33,7 +35,14 @@ export default function CrewsPage() {
   };
 
   const columns = [
-    { title: '크루명', dataIndex: 'name', width: 150 },
+    {
+      title: '크루명',
+      dataIndex: 'name',
+      width: 150,
+      render: (v: string, record: any) => (
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate(`/crews/${record.id}`)}>{v}</Button>
+      ),
+    },
     { title: '지역', dataIndex: 'region', width: 100, render: (v: string) => v || '-' },
     { title: '크루장', dataIndex: 'owner_nickname', width: 100 },
     {

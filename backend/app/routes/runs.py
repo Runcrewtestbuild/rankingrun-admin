@@ -67,6 +67,32 @@ async def list_runs(
     }
 
 
+@router.get("/{run_id}")
+async def get_run(_admin: CurrentAdmin, db: DbSession, run_id: str):
+    from fastapi import HTTPException
+    run = await db.execute(text("""
+        SELECT r.id, r.distance_meters, r.duration_seconds, r.total_elapsed_seconds,
+               r.avg_pace_seconds_per_km, r.best_pace_seconds_per_km,
+               r.avg_speed_ms, r.max_speed_ms, r.calories,
+               r.elevation_gain_meters, r.elevation_loss_meters,
+               r.is_flagged, r.flag_reason, r.source,
+               r.course_completed, r.route_match_percent, r.max_deviation_meters,
+               r.started_at, r.finished_at, r.created_at,
+               u.id as user_id, u.nickname, u.user_code, u.avatar_url,
+               c.id as course_id, c.title as course_title
+        FROM run_records r
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN courses c ON r.course_id = c.id
+        WHERE r.id = :id
+    """), {"id": run_id})
+
+    row = run.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    return dict(row._mapping)
+
+
 @router.post("/{run_id}/unflag")
 async def unflag_run(run_id: str, admin: CurrentAdmin, db: DbSession, request: Request):
     await db.execute(text("""

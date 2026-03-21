@@ -5,9 +5,13 @@ import AdminLayout from './layouts/AdminLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
+import UserDetailPage from './pages/UserDetailPage';
 import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
 import RunsPage from './pages/RunsPage';
+import RunDetailPage from './pages/RunDetailPage';
 import CrewsPage from './pages/CrewsPage';
+import CrewDetailPage from './pages/CrewDetailPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 
 export default function App() {
@@ -35,9 +39,13 @@ export default function App() {
       <Route element={<AdminLayout admin={admin!} onLogout={logout} />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/users/:id" element={<UserDetailPage />} />
         <Route path="/courses" element={<CoursesPage />} />
+        <Route path="/courses/:id" element={<CourseDetailPage />} />
         <Route path="/runs" element={<RunsPage />} />
+        <Route path="/runs/:id" element={<RunDetailPage />} />
         <Route path="/crews" element={<CrewsPage />} />
+        <Route path="/crews/:id" element={<CrewDetailPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
