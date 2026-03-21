@@ -9,7 +9,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-runcrew}:${POSTGRES_PASSWORD:-runcrew_password}@runvs-db:5432/${POSTGRES_DB:-runcrew}
       ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-admin-dev-secret-change-me}
-      CORS_ORIGINS: '["http://localhost:5173","https://admin.runvs.run","https://*.vercel.app"]'
+      CORS_ORIGINS: '["*"]'
     volumes:
       - ./backend:/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
