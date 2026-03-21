@@ -28,7 +28,7 @@ async def list_changelogs(
     limit: int = Query(20, ge=1, le=100),
 ):
     offset = (page - 1) * limit
-    where = "WHERE c.categories @> :cat_filter::jsonb" if category else ""
+    where = "WHERE c.categories @> cast(:cat_filter as jsonb)" if category else ""
     params: dict = {"limit": limit, "offset": offset}
     if category:
         params["cat_filter"] = f'["{category}"]'
@@ -58,7 +58,7 @@ async def create_changelog(body: ChangelogCreate, admin: CurrentAdmin, db: DbSes
     author = body.author or admin.name
     result = await db.execute(text("""
         INSERT INTO admin_changelogs (categories, title, description, author, version)
-        VALUES (:categories::jsonb, :title, :description, :author, :version)
+        VALUES (cast(:categories as jsonb), :title, :description, :author, :version)
         RETURNING id, categories, title, description, author, version, created_at
     """), {
         "categories": json.dumps(body.categories),
