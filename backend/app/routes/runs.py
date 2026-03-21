@@ -38,7 +38,7 @@ async def flagged_runs(
     }
 
 
-@router.get("/")
+@router.get("")
 async def list_runs(
     _admin: CurrentAdmin,
     db: DbSession,

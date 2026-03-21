@@ -18,7 +18,7 @@ class AnnouncementUpdate(BaseModel):
     is_active: bool | None = None
 
 
-@router.get("/")
+@router.get("")
 async def list_announcements(
     _admin: CurrentAdmin,
     db: DbSession,
@@ -44,7 +44,7 @@ async def list_announcements(
     }
 
 
-@router.post("/")
+@router.post("")
 async def create_announcement(body: AnnouncementCreate, admin: CurrentAdmin, db: DbSession, request: Request):
     result = await db.execute(text("""
         INSERT INTO announcements (title, content, is_active)

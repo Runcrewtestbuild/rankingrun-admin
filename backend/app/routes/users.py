@@ -12,7 +12,7 @@ class BanRequest(BaseModel):
     duration_days: int | None = None
 
 
-@router.get("/")
+@router.get("")
 async def list_users(
     _admin: CurrentAdmin,
     db: DbSession,

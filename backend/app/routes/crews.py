@@ -6,7 +6,7 @@ from app.auth import CurrentAdmin, DbSession, log_audit
 router = APIRouter(prefix="/admin-api/crews", tags=["crews"])
 
 
-@router.get("/")
+@router.get("")
 async def list_crews(
     _admin: CurrentAdmin,
     db: DbSession,

@@ -6,7 +6,7 @@ from app.auth import CurrentAdmin, DbSession, log_audit
 router = APIRouter(prefix="/admin-api/courses", tags=["courses"])
 
 
-@router.get("/")
+@router.get("")
 async def list_courses(
     _admin: CurrentAdmin,
     db: DbSession,
