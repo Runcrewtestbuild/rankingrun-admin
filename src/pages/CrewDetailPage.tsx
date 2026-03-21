@@ -87,7 +87,7 @@ export default function CrewDetailPage() {
 
       <Card title={`멤버 (${data.members?.length ?? 0}명)`} size="small">
         <Table
-          rowKey={(record) => `${record.nickname}-${record.user_code}`}
+          rowKey={(record: any) => `${record.nickname}-${record.user_code}`}
           columns={memberColumns}
           dataSource={data.members ?? []}
           pagination={false}
