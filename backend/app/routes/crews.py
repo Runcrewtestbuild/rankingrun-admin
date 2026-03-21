@@ -75,6 +75,52 @@ async def get_crew(_admin: CurrentAdmin, db: DbSession, crew_id: str):
     }
 
 
+@router.get("/{crew_id}/posts")
+async def get_crew_posts(
+    _admin: CurrentAdmin,
+    db: DbSession,
+    crew_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    offset = (page - 1) * limit
+
+    posts = await db.execute(text("""
+        SELECT cp.id, cp.title, cp.content, cp.post_type, cp.image_url, cp.image_urls,
+               cp.like_count, cp.comment_count, cp.is_active, cp.created_at,
+               u.nickname, u.user_code
+        FROM community_posts cp
+        JOIN users u ON cp.user_id = u.id
+        WHERE cp.crew_id = :crew_id
+        ORDER BY cp.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """), {"crew_id": crew_id, "limit": limit, "offset": offset})
+
+    count = await db.execute(text(
+        "SELECT COUNT(*) FROM community_posts WHERE crew_id = :crew_id"
+    ), {"crew_id": crew_id})
+
+    return {
+        "items": [dict(r._mapping) for r in posts.all()],
+        "total": count.scalar_one(),
+        "page": page,
+        "limit": limit,
+    }
+
+
+@router.get("/{crew_id}/posts/{post_id}/comments")
+async def get_post_comments(_admin: CurrentAdmin, db: DbSession, crew_id: str, post_id: str):
+    comments = await db.execute(text("""
+        SELECT cc.id, cc.content, cc.created_at, u.nickname, u.user_code
+        FROM community_comments cc
+        JOIN users u ON cc.user_id = u.id
+        WHERE cc.post_id = :post_id
+        ORDER BY cc.created_at ASC
+    """), {"post_id": post_id})
+
+    return [dict(r._mapping) for r in comments.all()]
+
+
 @router.delete("/{crew_id}")
 async def delete_crew(crew_id: str, admin: CurrentAdmin, db: DbSession, request: Request):
     await log_audit(db, admin, "crew.delete", request, "crew", crew_id)

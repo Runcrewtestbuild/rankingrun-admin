@@ -24,7 +24,7 @@ export default function CourseMap({ routeGeometry, startPoint, style }: CourseMa
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: 'mapbox://styles/mapbox/dark-v11',
       bounds,
       fitBoundsOptions: { padding: 40 },
     });
