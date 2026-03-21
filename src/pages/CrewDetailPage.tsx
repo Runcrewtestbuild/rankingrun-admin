@@ -14,7 +14,6 @@ const DELETE_REASONS = [
   '음란물/부적절한 콘텐츠',
   '개인정보 노출',
   '허위 정보',
-  '기타 (직접 입력)',
 ];
 
 export default function CrewDetailPage() {
@@ -64,9 +63,11 @@ export default function CrewDetailPage() {
     },
   });
 
+  const getDeleteReason = () => (customReason.trim() || deleteReason).trim();
+
   const handleDeleteConfirm = () => {
-    const reason = deleteReason === '기타 (직접 입력)' ? customReason : deleteReason;
-    if (!reason.trim()) { message.warning('삭제 사유를 입력해주세요.'); return; }
+    const reason = getDeleteReason();
+    if (!reason) { message.warning('삭제 사유를 선택하거나 입력해주세요.'); return; }
     if (!deleteModal) return;
 
     if (deleteModal.type === 'post') {
@@ -324,7 +325,7 @@ export default function CrewDetailPage() {
         okButtonProps={{
           danger: true,
           loading: deletePostMutation.isPending || deleteCommentMutation.isPending,
-          disabled: !deleteReason || (deleteReason === '기타 (직접 입력)' && !customReason.trim()),
+          disabled: !getDeleteReason(),
         }}
       >
         <div style={{ marginBottom: 12 }}>
@@ -333,27 +334,25 @@ export default function CrewDetailPage() {
             <Paragraph ellipsis={{ rows: 2 }} style={{ margin: 0 }}>{deleteModal?.content}</Paragraph>
           </div>
         </div>
-        <div style={{ marginBottom: 8 }}><Text strong>삭제 사유를 선택해주세요:</Text></div>
+        <div style={{ marginBottom: 8 }}><Text strong>삭제 사유 선택</Text></div>
         <Radio.Group
           value={deleteReason}
-          onChange={(e) => { setDeleteReason(e.target.value); if (e.target.value !== '기타 (직접 입력)') setCustomReason(''); }}
+          onChange={(e) => { setDeleteReason(e.target.value); setCustomReason(''); }}
           style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
         >
           {DELETE_REASONS.map((r) => (
             <Radio key={r} value={r}>{r}</Radio>
           ))}
         </Radio.Group>
-        {deleteReason === '기타 (직접 입력)' && (
-          <Input.TextArea
-            placeholder="삭제 사유를 입력해주세요"
-            value={customReason}
-            onChange={(e) => setCustomReason(e.target.value)}
-            style={{ marginTop: 8 }}
-            rows={2}
-            maxLength={200}
-            showCount
-          />
-        )}
+        <div style={{ marginTop: 12, marginBottom: 8 }}><Text strong>또는 직접 입력</Text></div>
+        <Input.TextArea
+          placeholder="삭제 사유를 직접 입력해주세요"
+          value={customReason}
+          onChange={(e) => { setCustomReason(e.target.value); if (e.target.value.trim()) setDeleteReason(''); }}
+          rows={2}
+          maxLength={200}
+          showCount
+        />
       </Modal>
     </div>
   );
