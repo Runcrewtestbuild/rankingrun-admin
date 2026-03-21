@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import {
-  Card, Tabs, List, Button, Modal, Input, Checkbox, Tag, Space, Typography, message, Popconfirm,
+  Card, Tabs, Button, Modal, Input, Checkbox, Tag, Space, Typography, message, Popconfirm, List, Segmented, Spin, Empty,
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, MessageOutlined, DesktopOutlined, DatabaseOutlined, RocketOutlined,
+  MobileOutlined, SettingOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -25,19 +26,46 @@ const categoryMeta: Record<string, { color: string; label: string }> = {
   db: { color: 'orange', label: 'DB' },
 };
 
+const scopeMeta: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
+  app: { color: 'purple', label: '앱', icon: <MobileOutlined /> },
+  admin: { color: 'cyan', label: '어드민', icon: <SettingOutlined /> },
+};
+
+function groupByDate(items: any[]): { date: string; items: any[] }[] {
+  const map = new Map<string, any[]>();
+  for (const item of items) {
+    const date = dayjs(item.created_at).format('YYYY-MM-DD');
+    if (!map.has(date)) map.set(date, []);
+    map.get(date)!.push(item);
+  }
+  return Array.from(map.entries()).map(([date, items]) => ({ date, items }));
+}
+
+function formatDateLabel(date: string): string {
+  const d = dayjs(date);
+  const today = dayjs().format('YYYY-MM-DD');
+  const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+  const weekday = weekdays[d.day()];
+  if (date === today) return `오늘 (${d.format('M월 D일')} ${weekday}요일)`;
+  if (date === yesterday) return `어제 (${d.format('M월 D일')} ${weekday}요일)`;
+  return `${d.format('YYYY년 M월 D일')} ${weekday}요일`;
+}
+
 export default function ChangelogPage() {
   const queryClient = useQueryClient();
   const [category, setCategory] = useState('');
+  const [scope, setScope] = useState('');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [commentOpen, setCommentOpen] = useState<{ id: string; title: string } | null>(null);
   const [newComment, setNewComment] = useState('');
 
-  const [form, setForm] = useState({ categories: ['feature'] as string[], title: '', description: '', version: '' });
+  const [form, setForm] = useState({ categories: ['feature'] as string[], scope: 'app', title: '', description: '', version: '' });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['changelogs', category, page],
-    queryFn: () => api.get('/admin-api/changelogs', { params: { category, page, limit: 20 } }).then(r => r.data),
+    queryKey: ['changelogs', category, scope, page],
+    queryFn: () => api.get('/admin-api/changelogs', { params: { category, scope, page, limit: 50 } }).then(r => r.data),
   });
 
   const { data: comments, isLoading: commentsLoading } = useQuery({
@@ -52,7 +80,7 @@ export default function ChangelogPage() {
       message.success('변경 로그가 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: ['changelogs'] });
       setCreateOpen(false);
-      setForm({ categories: ['feature'], title: '', description: '', version: '' });
+      setForm({ categories: ['feature'], scope: 'app', title: '', description: '', version: '' });
     },
   });
 
@@ -83,83 +111,107 @@ export default function ChangelogPage() {
     },
   });
 
+  const dateGroups = groupByDate(data?.items ?? []);
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4}>변경 로그</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>변경 로그</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           변경 사항 추가
         </Button>
       </div>
 
-      <Tabs
-        activeKey={category}
-        onChange={(k) => { setCategory(k); setPage(1); }}
-        items={CATEGORIES.map((c) => ({
-          key: c.key,
-          label: (
-            <span>{c.icon} {c.label}</span>
-          ),
-        }))}
-      />
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+        <Segmented
+          value={scope}
+          onChange={(v) => { setScope(v as string); setPage(1); }}
+          options={[
+            { value: '', label: '전체' },
+            { value: 'app', label: '앱' },
+            { value: 'admin', label: '어드민' },
+          ]}
+        />
+        <Tabs
+          activeKey={category}
+          onChange={(k) => { setCategory(k); setPage(1); }}
+          items={CATEGORIES.map((c) => ({
+            key: c.key,
+            label: <span>{c.icon} {c.label}</span>,
+          }))}
+          style={{ marginBottom: 0 }}
+        />
+      </div>
 
-      <List
-        loading={isLoading}
-        dataSource={data?.items ?? []}
-        locale={{ emptyText: '변경 로그가 없습니다' }}
-        pagination={data?.total > 20 ? {
-          current: page,
-          total: data?.total ?? 0,
-          pageSize: 20,
-          onChange: setPage,
-          size: 'small',
-          showTotal: (total: number) => `총 ${total}건`,
-        } : false}
-        renderItem={(item: any) => {
-          const cats: string[] = item.categories || [];
-          return (
-            <Card size="small" style={{ marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <Space style={{ marginBottom: 4 }}>
-                    {cats.map((cat) => {
-                      const meta = categoryMeta[cat] || { color: 'default', label: cat };
-                      return <Tag key={cat} color={meta.color}>{meta.label}</Tag>;
-                    })}
-                    <Text strong>{item.title}</Text>
-                    {item.version && <Tag>{item.version}</Tag>}
-                  </Space>
-                  {item.description && (
-                    <Paragraph style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{item.description}</Paragraph>
-                  )}
-                  <div style={{ marginTop: 4 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {item.author} · {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
-                    </Text>
-                  </div>
-                </div>
-                <Space>
-                  <Button
-                    size="small"
-                    icon={<MessageOutlined />}
-                    onClick={() => setCommentOpen({ id: item.id, title: item.title })}
-                  >
-                    {item.comment_count || 0}
-                  </Button>
-                  <Popconfirm
-                    title="이 변경 로그를 삭제하시겠습니까?"
-                    onConfirm={() => deleteMutation.mutate(item.id)}
-                    okText="삭제"
-                    cancelText="취소"
-                  >
-                    <Button size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Space>
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: 48 }}><Spin /></div>
+      ) : dateGroups.length === 0 ? (
+        <Empty description="변경 로그가 없습니다" />
+      ) : (
+        <>
+          {dateGroups.map(({ date, items }) => (
+            <div key={date} style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Text strong style={{ fontSize: 15 }}>{formatDateLabel(date)}</Text>
+                <Tag>{items.length}건</Tag>
               </div>
-            </Card>
-          );
-        }}
-      />
+              <div style={{ borderLeft: '2px solid #303030', paddingLeft: 16 }}>
+                {items.map((item: any) => {
+                  const cats: string[] = item.categories || [];
+                  const sc = scopeMeta[item.scope] || scopeMeta.app;
+                  return (
+                    <Card size="small" key={item.id} style={{ marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <Space style={{ marginBottom: 4 }} wrap>
+                            <Tag color={sc.color} icon={sc.icon}>{sc.label}</Tag>
+                            {cats.map((cat) => {
+                              const meta = categoryMeta[cat] || { color: 'default', label: cat };
+                              return <Tag key={cat} color={meta.color}>{meta.label}</Tag>;
+                            })}
+                            <Text strong>{item.title}</Text>
+                            {item.version && <Tag>{item.version}</Tag>}
+                          </Space>
+                          {item.description && (
+                            <Paragraph style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{item.description}</Paragraph>
+                          )}
+                          <div style={{ marginTop: 4 }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {item.author} · {dayjs(item.created_at).format('HH:mm')}
+                            </Text>
+                          </div>
+                        </div>
+                        <Space>
+                          <Button
+                            size="small"
+                            icon={<MessageOutlined />}
+                            onClick={() => setCommentOpen({ id: item.id, title: item.title })}
+                          >
+                            {item.comment_count || 0}
+                          </Button>
+                          <Popconfirm
+                            title="이 변경 로그를 삭제하시겠습니까?"
+                            onConfirm={() => deleteMutation.mutate(item.id)}
+                            okText="삭제"
+                            cancelText="취소"
+                          >
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                          </Popconfirm>
+                        </Space>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {data?.total > 50 && (
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <Button onClick={() => setPage(p => p + 1)}>더 보기</Button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* 생성 모달 */}
       <Modal
@@ -176,6 +228,19 @@ export default function ChangelogPage() {
         okButtonProps={{ loading: createMutation.isPending }}
       >
         <Space direction="vertical" style={{ width: '100%' }} size={12}>
+          <div>
+            <Text strong>대상</Text>
+            <div style={{ marginTop: 8 }}>
+              <Segmented
+                value={form.scope}
+                onChange={(v) => setForm({ ...form, scope: v as string })}
+                options={[
+                  { value: 'app', label: '앱' },
+                  { value: 'admin', label: '어드민' },
+                ]}
+              />
+            </div>
+          </div>
           <div>
             <Text strong>분류 (복수 선택 가능)</Text>
             <div style={{ marginTop: 8 }}>

@@ -9,6 +9,7 @@ router = APIRouter(prefix="/admin-api/changelogs", tags=["changelogs"])
 
 class ChangelogCreate(BaseModel):
     categories: list[str]  # ["ui", "db", "feature"]
+    scope: str = "app"  # "admin" or "app"
     title: str
     description: str | None = None
     author: str | None = None
@@ -24,14 +25,20 @@ async def list_changelogs(
     _admin: CurrentAdmin,
     db: DbSession,
     category: str = Query("", description="ui, db, feature or empty for all"),
+    scope: str = Query("", description="admin, app or empty for all"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ):
     offset = (page - 1) * limit
-    where = "WHERE c.categories @> cast(:cat_filter as jsonb)" if category else ""
+    conditions = []
     params: dict = {"limit": limit, "offset": offset}
     if category:
+        conditions.append("c.categories @> cast(:cat_filter as jsonb)")
         params["cat_filter"] = f'["{category}"]'
+    if scope:
+        conditions.append("c.scope = :scope")
+        params["scope"] = scope
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
     rows = await db.execute(text(f"""
         SELECT c.*, (SELECT COUNT(*) FROM admin_changelog_comments cc WHERE cc.changelog_id = c.id) as comment_count
@@ -41,7 +48,7 @@ async def list_changelogs(
         LIMIT :limit OFFSET :offset
     """), params)
 
-    count_params = {"cat_filter": f'["{category}"]'} if category else {}
+    count_params = {k: v for k, v in params.items() if k not in ("limit", "offset")}
     count = await db.execute(text(f"SELECT COUNT(*) FROM admin_changelogs c {where}"), count_params)
 
     return {
@@ -57,11 +64,12 @@ async def create_changelog(body: ChangelogCreate, admin: CurrentAdmin, db: DbSes
     import json
     author = body.author or admin.name
     result = await db.execute(text("""
-        INSERT INTO admin_changelogs (categories, title, description, author, version)
-        VALUES (cast(:categories as jsonb), :title, :description, :author, :version)
-        RETURNING id, categories, title, description, author, version, created_at
+        INSERT INTO admin_changelogs (categories, scope, title, description, author, version)
+        VALUES (cast(:categories as jsonb), :scope, :title, :description, :author, :version)
+        RETURNING id, categories, scope, title, description, author, version, created_at
     """), {
         "categories": json.dumps(body.categories),
+        "scope": body.scope,
         "title": body.title,
         "description": body.description,
         "author": author,
