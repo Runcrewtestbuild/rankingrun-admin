@@ -52,7 +52,12 @@ async def get_course(_admin: CurrentAdmin, db: DbSession, course_id: str):
                c.course_type, c.lap_count, c.elevation_gain_meters,
                c.is_public, c.tags, c.thumbnail_url,
                c.created_at, c.updated_at,
-               u.nickname as creator_nickname, u.user_code as creator_code
+               u.nickname as creator_nickname, u.user_code as creator_code,
+               ST_AsGeoJSON(c.route_geometry)::json as route_geometry,
+               json_build_object(
+                   'lat', ST_Y(ST_StartPoint(c.route_geometry::geometry)),
+                   'lng', ST_X(ST_StartPoint(c.route_geometry::geometry))
+               ) as start_point
         FROM courses c
         LEFT JOIN users u ON c.creator_id = u.id
         WHERE c.id = :id

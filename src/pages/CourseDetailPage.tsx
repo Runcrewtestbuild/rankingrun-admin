@@ -4,6 +4,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../api';
+import CourseMap from '../components/CourseMap';
 
 const { Title } = Typography;
 
@@ -81,6 +82,12 @@ export default function CourseDetailPage() {
           {d && <Tag color={d.color}>{d.text}</Tag>}
           {data.is_public ? <Tag color="green">공개</Tag> : <Tag>비공개</Tag>}
         </div>
+
+        <CourseMap
+          routeGeometry={data.route_geometry}
+          startPoint={data.start_point}
+          style={{ marginBottom: 16 }}
+        />
 
         <Descriptions column={{ xs: 1, sm: 2, lg: 3 }} bordered size="small">
           <Descriptions.Item label="거리">{data.distance_meters ? `${(data.distance_meters / 1000).toFixed(2)}km` : '-'}</Descriptions.Item>
