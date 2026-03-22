@@ -148,11 +148,12 @@ async def admin_delete_post(
     """), {"id": post_id, "reason": body.reason})
 
     # 작성자에게 알림
+    import json
+    notif_data = json.dumps({"reason": body.reason, "content_preview": (row.content or "")[:50]})
     await db.execute(text("""
         INSERT INTO notifications (user_id, type, actor_id, target_id, target_type, data)
-        VALUES (:user_id, 'admin_delete', :user_id, :post_id, 'post',
-                jsonb_build_object('reason', :reason, 'content_preview', LEFT(:content, 50)))
-    """), {"user_id": str(row.user_id), "post_id": post_id, "reason": body.reason, "content": row.content})
+        VALUES (:user_id, 'admin_delete', :user_id, :post_id, 'post', cast(:data as jsonb))
+    """), {"user_id": str(row.user_id), "post_id": post_id, "data": notif_data})
 
     await db.commit()
     await log_audit(db, admin, "post.admin_delete", request, "post", post_id, {"reason": body.reason})
@@ -179,11 +180,12 @@ async def admin_delete_comment(
     """), {"id": comment_id, "reason": body.reason})
 
     # 작성자에게 알림
+    import json
+    notif_data = json.dumps({"reason": body.reason, "content_preview": (row.content or "")[:50]})
     await db.execute(text("""
         INSERT INTO notifications (user_id, type, actor_id, target_id, target_type, data)
-        VALUES (:user_id, 'admin_delete', :user_id, :comment_id, 'comment',
-                jsonb_build_object('reason', :reason, 'content_preview', LEFT(:content, 50)))
-    """), {"user_id": str(row.user_id), "comment_id": comment_id, "reason": body.reason, "content": row.content})
+        VALUES (:user_id, 'admin_delete', :user_id, :comment_id, 'comment', cast(:data as jsonb))
+    """), {"user_id": str(row.user_id), "comment_id": comment_id, "data": notif_data})
 
     await db.commit()
     await log_audit(db, admin, "comment.admin_delete", request, "comment", comment_id, {"reason": body.reason})
