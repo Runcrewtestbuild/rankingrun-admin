@@ -100,17 +100,13 @@ export default function RunsPage() {
     },
     {
       title: '관리',
-      width: 160,
+      width: 120,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space size={4}>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/runs/${record.id}`)}>상세</Button>
-          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
-            해제
-          </Button>
-          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
-            삭제
-          </Button>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/runs/${record.id}`)} />
+          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)} />
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
         </Space>
       ),
     },
@@ -132,19 +128,15 @@ export default function RunsPage() {
     },
     {
       title: '관리',
-      width: 160,
+      width: 120,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space size={4}>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/runs/${record.id}`)}>상세</Button>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/runs/${record.id}`)} />
           {record.is_flagged && (
-            <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)}>
-              해제
-            </Button>
+            <Button size="small" icon={<CheckCircleOutlined />} onClick={() => unflagMutation.mutate(record.id)} />
           )}
-          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
-            삭제
-          </Button>
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
         </Space>
       ),
     },

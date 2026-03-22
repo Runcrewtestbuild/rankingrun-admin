@@ -109,12 +109,12 @@ export default function CoursesPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4}>코스 관리</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>코스 관리</Title>
         <Input
           placeholder="코스명으로 검색"
           prefix={<SearchOutlined />}
-          style={{ width: 300 }}
+          style={{ width: 300, maxWidth: '100%' }}
           allowClear
           onPressEnter={(e) => { setSearch((e.target as HTMLInputElement).value); setPage(1); }}
         />

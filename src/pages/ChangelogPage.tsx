@@ -115,14 +115,14 @@ export default function ChangelogPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>변경 로그</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-          변경 사항 추가
+          추가
         </Button>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <Segmented
           value={scope}
           onChange={(v) => { setScope(v as string); setPage(1); }}
@@ -292,7 +292,8 @@ export default function ChangelogPage() {
         open={!!commentOpen}
         onCancel={() => { setCommentOpen(null); setNewComment(''); }}
         footer={null}
-        width={600}
+        width="90%"
+        style={{ maxWidth: 600 }}
       >
         <List
           loading={commentsLoading}

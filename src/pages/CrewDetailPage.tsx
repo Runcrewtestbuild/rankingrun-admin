@@ -257,7 +257,8 @@ export default function CrewDetailPage() {
         open={!!commentModal}
         onCancel={() => setCommentModal(null)}
         footer={null}
-        width={600}
+        width="90%"
+        style={{ maxWidth: 600 }}
       >
         <List
           loading={commentsLoading}

@@ -32,7 +32,7 @@ export default function LoginPage({ onLogin }: Props) {
         background: '#0a0a0a',
       }}
     >
-      <Card style={{ width: 400 }}>
+      <Card style={{ width: 400, maxWidth: 'calc(100vw - 32px)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={3}>RUNVS 관리자</Title>
         </div>

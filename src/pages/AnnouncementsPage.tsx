@@ -94,8 +94,8 @@ export default function AnnouncementsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4}>공지사항</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>공지사항</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>새 공지</Button>
       </div>
       <Table

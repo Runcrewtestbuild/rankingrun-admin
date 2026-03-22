@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Dropdown, Typography } from 'antd';
+import { Layout, Menu, Button, Avatar, Dropdown, Typography, Drawer, Grid } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -12,10 +12,12 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 interface Props {
   admin: { name: string; email: string; role: string };
@@ -34,29 +36,56 @@ const menuItems = [
 
 export default function AdminLayout({ admin, onLogout }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
+  // 모바일에서 페이지 이동 시 Drawer 닫기
+  useEffect(() => {
+    if (isMobile) setDrawerOpen(false);
+  }, [location.pathname, isMobile]);
+
+  const menuContent = (
+    <>
+      <div style={{ padding: '16px', textAlign: 'center' }}>
+        <Text strong style={{ color: '#fff', fontSize: isMobile ? 18 : (collapsed ? 14 : 18) }}>
+          {!isMobile && collapsed ? 'RV' : 'RUNVS 관리자'}
+        </Text>
+      </div>
+      <Menu
+        theme="dark"
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        items={menuItems}
+        onClick={({ key }) => navigate(key)}
+      />
+    </>
+  );
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} trigger={null} width={220}>
-        <div style={{ padding: '16px', textAlign: 'center' }}>
-          <Text strong style={{ color: '#fff', fontSize: collapsed ? 14 : 18 }}>
-            {collapsed ? 'RV' : 'RUNVS 관리자'}
-          </Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-        />
-      </Sider>
+      {isMobile ? (
+        <Drawer
+          placement="left"
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          width={220}
+          styles={{ body: { padding: 0, background: '#141414' } }}
+          closable={false}
+        >
+          {menuContent}
+        </Drawer>
+      ) : (
+        <Sider collapsible collapsed={collapsed} trigger={null} width={220}>
+          {menuContent}
+        </Sider>
+      )}
       <Layout>
         <Header
           style={{
-            padding: '0 24px',
+            padding: isMobile ? '0 12px' : '0 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -65,8 +94,8 @@ export default function AdminLayout({ admin, onLogout }: Props) {
         >
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
+            icon={isMobile ? <MenuOutlined /> : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
+            onClick={() => isMobile ? setDrawerOpen(true) : setCollapsed(!collapsed)}
             style={{ color: '#fff' }}
           />
           <Dropdown
@@ -79,12 +108,12 @@ export default function AdminLayout({ admin, onLogout }: Props) {
             }}
           >
             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Avatar icon={<UserOutlined />} />
-              <Text style={{ color: '#fff' }}>{admin.name}</Text>
+              <Avatar icon={<UserOutlined />} size={isMobile ? 'small' : 'default'} />
+              {!isMobile && <Text style={{ color: '#fff' }}>{admin.name}</Text>}
             </div>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 24, padding: 24, background: '#1f1f1f', borderRadius: 8 }}>
+        <Content style={{ margin: isMobile ? 8 : 24, padding: isMobile ? 12 : 24, background: '#1f1f1f', borderRadius: 8 }}>
           <Outlet />
         </Content>
       </Layout>
