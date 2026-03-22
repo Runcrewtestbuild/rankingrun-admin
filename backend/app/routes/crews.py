@@ -193,6 +193,29 @@ async def admin_delete_comment(
     return {"message": "Comment deleted"}
 
 
+@router.get("/{crew_id}/join-requests")
+async def get_crew_join_requests(
+    _admin: CurrentAdmin, db: DbSession, crew_id: str,
+    status: str = Query("pending"),
+):
+    where = "WHERE cjr.crew_id = :crew_id"
+    if status:
+        where += " AND cjr.status = :status"
+
+    requests = await db.execute(text(f"""
+        SELECT cjr.id, cjr.message, cjr.status, cjr.created_at, cjr.reviewed_at,
+               u.id as user_id, u.nickname, u.user_code, u.avatar_url,
+               rv.nickname as reviewer_nickname
+        FROM crew_join_requests cjr
+        JOIN users u ON cjr.user_id = u.id
+        LEFT JOIN users rv ON cjr.reviewed_by = rv.id
+        {where}
+        ORDER BY cjr.created_at DESC
+    """), {"crew_id": crew_id, "status": status})
+
+    return [dict(r._mapping) for r in requests.all()]
+
+
 @router.delete("/{crew_id}")
 async def delete_crew(crew_id: str, admin: CurrentAdmin, db: DbSession, request: Request):
     await log_audit(db, admin, "crew.delete", request, "crew", crew_id)

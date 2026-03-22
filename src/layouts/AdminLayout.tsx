@@ -8,6 +8,9 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   NotificationOutlined,
+  CalendarOutlined,
+  StarOutlined,
+  BellOutlined,
   HistoryOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -31,6 +34,9 @@ const menuItems = [
   { key: '/runs', icon: <ThunderboltOutlined />, label: '런 기록' },
   { key: '/crews', icon: <TeamOutlined />, label: '크루' },
   { key: '/announcements', icon: <NotificationOutlined />, label: '공지사항' },
+  { key: '/events', icon: <CalendarOutlined />, label: '이벤트' },
+  { key: '/reviews', icon: <StarOutlined />, label: '리뷰' },
+  { key: '/notifications', icon: <BellOutlined />, label: '알림' },
   { key: '/changelog', icon: <HistoryOutlined />, label: '변경 로그' },
 ];
 

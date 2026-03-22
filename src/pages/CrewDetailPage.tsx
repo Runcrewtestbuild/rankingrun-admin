@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Table, Button, Space, Spin, Typography, List, Modal, Image, Input, Radio, message, Alert } from 'antd';
+import { Card, Descriptions, Tag, Table, Button, Space, Spin, Typography, List, Modal, Image, Input, Radio, message, Alert, Tabs } from 'antd';
 import { ArrowLeftOutlined, MessageOutlined, LikeOutlined, PictureOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -25,6 +25,7 @@ export default function CrewDetailPage() {
   const [deleteModal, setDeleteModal] = useState<{ type: 'post' | 'comment'; postId: string; commentId?: string; content: string } | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
   const [customReason, setCustomReason] = useState('');
+  const [joinRequestStatus, setJoinRequestStatus] = useState('pending');
 
   const { data, isLoading } = useQuery({
     queryKey: ['crew', id],
@@ -41,6 +42,12 @@ export default function CrewDetailPage() {
     queryKey: ['crew-post-comments', commentModal?.postId],
     queryFn: () => api.get(`/admin-api/crews/${id}/posts/${commentModal!.postId}/comments`).then(r => r.data),
     enabled: !!commentModal,
+  });
+
+  const { data: joinRequests, isLoading: joinRequestsLoading } = useQuery({
+    queryKey: ['crew-join-requests', id, joinRequestStatus],
+    queryFn: () => api.get(`/admin-api/crews/${id}/join-requests`, { params: { status: joinRequestStatus } }).then(r => r.data),
+    enabled: !!id,
   });
 
   const deletePostMutation = useMutation({
@@ -257,6 +264,73 @@ export default function CrewDetailPage() {
           )}
         />
       </Card>
+
+      {data.requires_approval && (
+        <Card
+          title={`가입 요청 (${joinRequests?.length ?? 0}건)`}
+          size="small"
+          style={{ marginBottom: 16 }}
+          loading={joinRequestsLoading}
+          extra={
+            <Tabs
+              activeKey={joinRequestStatus}
+              onChange={setJoinRequestStatus}
+              size="small"
+              style={{ marginBottom: 0 }}
+              items={[
+                { key: 'pending', label: '대기' },
+                { key: 'approved', label: '승인' },
+                { key: 'rejected', label: '거절' },
+              ]}
+            />
+          }
+        >
+          <Table
+            rowKey="id"
+            dataSource={joinRequests ?? []}
+            size="small"
+            pagination={joinRequests?.length > 10 ? { pageSize: 10, size: 'small' } : false}
+            columns={[
+              {
+                title: '닉네임',
+                dataIndex: 'nickname',
+                width: 100,
+                render: (v: string, record: any) => (
+                  <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate(`/users/${record.user_id}`)}>{v}</Button>
+                ),
+              },
+              { title: '코드', dataIndex: 'user_code', width: 90 },
+              { title: '메시지', dataIndex: 'message', ellipsis: true, render: (v: string) => v || '-' },
+              {
+                title: '상태',
+                dataIndex: 'status',
+                width: 80,
+                render: (v: string) => {
+                  const s: Record<string, { color: string; text: string }> = {
+                    pending: { color: 'orange', text: '대기' },
+                    approved: { color: 'green', text: '승인' },
+                    rejected: { color: 'red', text: '거절' },
+                  };
+                  const st = s[v] || { color: 'default', text: v };
+                  return <Tag color={st.color}>{st.text}</Tag>;
+                },
+              },
+              {
+                title: '처리자',
+                dataIndex: 'reviewer_nickname',
+                width: 90,
+                render: (v: string) => v || '-',
+              },
+              {
+                title: '요청일',
+                dataIndex: 'created_at',
+                width: 130,
+                render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
+              },
+            ]}
+          />
+        </Card>
+      )}
 
       {/* 댓글 모달 */}
       <Modal

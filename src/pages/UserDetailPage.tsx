@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Table, Button, Space, Avatar, Spin, Typography, message, Modal } from 'antd';
-import { ArrowLeftOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Tag, Table, Button, Space, Avatar, Spin, Typography, message, Modal, InputNumber, Input } from 'antd';
+import { ArrowLeftOutlined, StopOutlined, CheckCircleOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../api';
@@ -25,6 +26,11 @@ export default function UserDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [pointPage, setPointPage] = useState(1);
+  const [pointModal, setPointModal] = useState(false);
+  const [pointAmount, setPointAmount] = useState(0);
+  const [pointDesc, setPointDesc] = useState('');
+
   const { data, isLoading } = useQuery({
     queryKey: ['user', id],
     queryFn: () => api.get(`/admin-api/users/${id}`).then(r => r.data),
@@ -38,6 +44,25 @@ export default function UserDetailPage() {
   const unbanMutation = useMutation({
     mutationFn: () => api.post(`/admin-api/users/${id}/unban`),
     onSuccess: () => { message.success('차단 해제 완료'); queryClient.invalidateQueries({ queryKey: ['user', id] }); },
+  });
+
+  const { data: pointsData, isLoading: pointsLoading } = useQuery({
+    queryKey: ['user-points', id, pointPage],
+    queryFn: () => api.get(`/admin-api/users/${id}/points`, { params: { page: pointPage, limit: 10 } }).then(r => r.data),
+    enabled: !!id,
+  });
+
+  const pointAdjustMutation = useMutation({
+    mutationFn: (body: { amount: number; description: string }) =>
+      api.post(`/admin-api/users/${id}/points/adjust`, body),
+    onSuccess: (res) => {
+      message.success(`포인트 조정 완료 (잔액: ${res.data.new_balance})`);
+      queryClient.invalidateQueries({ queryKey: ['user-points'] });
+      queryClient.invalidateQueries({ queryKey: ['user', id] });
+      setPointModal(false);
+      setPointAmount(0);
+      setPointDesc('');
+    },
   });
 
   if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
@@ -128,6 +153,66 @@ export default function UserDetailPage() {
         </Card>
       )}
 
+      <Card
+        title={`포인트 내역 (잔액: ${pointsData?.balance?.toLocaleString() ?? data.total_points?.toLocaleString() ?? 0}P)`}
+        size="small"
+        style={{ marginBottom: 16 }}
+        extra={
+          <Button size="small" icon={<PlusOutlined />} onClick={() => setPointModal(true)}>
+            포인트 조정
+          </Button>
+        }
+        loading={pointsLoading}
+      >
+        <Table
+          rowKey="id"
+          dataSource={pointsData?.items ?? []}
+          size="small"
+          pagination={pointsData?.total > 10 ? {
+            current: pointPage,
+            total: pointsData?.total ?? 0,
+            pageSize: 10,
+            onChange: setPointPage,
+            size: 'small',
+          } : false}
+          columns={[
+            {
+              title: '유형',
+              dataIndex: 'tx_type',
+              width: 100,
+              render: (v: string) => {
+                const types: Record<string, { color: string; text: string }> = {
+                  admin_adjust: { color: 'purple', text: '관리자 조정' },
+                  run_complete: { color: 'green', text: '러닝 완료' },
+                  event_reward: { color: 'blue', text: '이벤트 보상' },
+                  streak_bonus: { color: 'orange', text: '스트릭 보너스' },
+                };
+                const t = types[v] || { color: 'default', text: v };
+                return <Tag color={t.color}>{t.text}</Tag>;
+              },
+            },
+            {
+              title: '금액',
+              dataIndex: 'amount',
+              width: 80,
+              render: (v: number) => (
+                <span style={{ color: v > 0 ? '#52c41a' : '#ff4d4f', fontWeight: 500 }}>
+                  {v > 0 ? `+${v}` : v}
+                </span>
+              ),
+            },
+            { title: '잔액', dataIndex: 'balance_after', width: 80, render: (v: number) => v?.toLocaleString() },
+            { title: '설명', dataIndex: 'description', ellipsis: true },
+            {
+              title: '일시',
+              dataIndex: 'created_at',
+              width: 130,
+              render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
+            },
+          ]}
+        />
+      </Card>
+
       <Card title="최근 런 기록" size="small">
         <Table
           rowKey="id"
@@ -137,6 +222,40 @@ export default function UserDetailPage() {
           size="small"
         />
       </Card>
+
+      <Modal
+        title="포인트 조정"
+        open={pointModal}
+        onCancel={() => setPointModal(false)}
+        onOk={() => {
+          if (!pointAmount) { message.warning('금액을 입력해주세요.'); return; }
+          pointAdjustMutation.mutate({ amount: pointAmount, description: pointDesc || '관리자 수동 조정' });
+        }}
+        okText="적용"
+        cancelText="취소"
+        okButtonProps={{ loading: pointAdjustMutation.isPending }}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size={12}>
+          <div>
+            <div style={{ marginBottom: 4 }}>금액 (음수 = 차감)</div>
+            <InputNumber
+              value={pointAmount}
+              onChange={(v) => setPointAmount(v ?? 0)}
+              style={{ width: '100%' }}
+              placeholder="예: 100 또는 -50"
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4 }}>사유</div>
+            <Input
+              value={pointDesc}
+              onChange={(e) => setPointDesc(e.target.value)}
+              placeholder="포인트 조정 사유"
+              maxLength={200}
+            />
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 }

@@ -99,6 +99,78 @@ async def ban_user(user_id: str, body: BanRequest, admin: CurrentAdmin, db: DbSe
     return {"message": "User banned"}
 
 
+class PointAdjustRequest(BaseModel):
+    amount: int
+    description: str = "관리자 수동 조정"
+
+
+@router.get("/{user_id}/points")
+async def get_user_points(
+    _admin: CurrentAdmin, db: DbSession, user_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    offset = (page - 1) * limit
+
+    items = await db.execute(text("""
+        SELECT id, amount, balance_after, tx_type, description, reference_id, created_at
+        FROM point_transactions
+        WHERE user_id = :user_id
+        ORDER BY created_at DESC
+        LIMIT :limit OFFSET :offset
+    """), {"user_id": user_id, "limit": limit, "offset": offset})
+
+    count = await db.execute(text(
+        "SELECT COUNT(*) FROM point_transactions WHERE user_id = :user_id"
+    ), {"user_id": user_id})
+
+    balance = await db.execute(text(
+        "SELECT total_points FROM users WHERE id = :id"
+    ), {"id": user_id})
+
+    return {
+        "items": [dict(r._mapping) for r in items.all()],
+        "total": count.scalar_one(),
+        "balance": balance.scalar_one() or 0,
+        "page": page,
+        "limit": limit,
+    }
+
+
+@router.post("/{user_id}/points/adjust")
+async def adjust_user_points(
+    user_id: str, body: PointAdjustRequest,
+    admin: CurrentAdmin, db: DbSession, request: Request,
+):
+    # 현재 잔액 조회
+    bal = await db.execute(text(
+        "SELECT total_points FROM users WHERE id = :id"
+    ), {"id": user_id})
+    current = bal.scalar_one_or_none()
+    if current is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_balance = (current or 0) + body.amount
+
+    # 포인트 트랜잭션 기록
+    await db.execute(text("""
+        INSERT INTO point_transactions (user_id, amount, balance_after, tx_type, description)
+        VALUES (:user_id, :amount, :balance, 'admin_adjust', :desc)
+    """), {"user_id": user_id, "amount": body.amount, "balance": new_balance, "desc": body.description})
+
+    # 유저 잔액 갱신
+    await db.execute(text(
+        "UPDATE users SET total_points = :balance WHERE id = :id"
+    ), {"balance": new_balance, "id": user_id})
+
+    await db.commit()
+    await log_audit(db, admin, "user.points_adjust", request, "user", user_id, {
+        "amount": body.amount, "new_balance": new_balance, "description": body.description,
+    })
+
+    return {"message": "Points adjusted", "new_balance": new_balance}
+
+
 @router.post("/{user_id}/unban")
 async def unban_user(user_id: str, admin: CurrentAdmin, db: DbSession, request: Request):
     await db.execute(text("""
