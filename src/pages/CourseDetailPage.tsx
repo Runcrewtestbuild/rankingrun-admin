@@ -1,12 +1,13 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Table, Button, Space, Spin, Typography, Statistic, Row, Col } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { Card, Descriptions, Tag, Table, Button, Space, Spin, Typography, Statistic, Row, Col, Rate, Modal, message } from 'antd';
+import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../api';
 import CourseMap from '../components/CourseMap';
 
-const { Title } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const difficultyLabel: Record<string, { color: string; text: string }> = {
   easy: { color: 'green', text: '쉬움' },
@@ -31,10 +32,23 @@ function formatDuration(s: number | null) {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [reviewPage, setReviewPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ['course', id],
     queryFn: () => api.get(`/admin-api/courses/${id}`).then(r => r.data),
+  });
+
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ['course-reviews', id, reviewPage],
+    queryFn: () => api.get(`/admin-api/courses/${id}/reviews`, { params: { page: reviewPage, limit: 10 } }).then(r => r.data),
+    enabled: !!id,
+  });
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: (reviewId: string) => api.delete(`/admin-api/courses/${id}/reviews/${reviewId}`),
+    onSuccess: () => { message.success('리뷰 삭제 완료'); queryClient.invalidateQueries({ queryKey: ['course-reviews'] }); },
   });
 
   if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
@@ -126,6 +140,74 @@ export default function CourseDetailPage() {
           </Row>
         </Card>
       )}
+
+      <Card
+        title={`리뷰 (${reviewsData?.total ?? 0}건${reviewsData?.avg_rating ? ` · 평균 ${reviewsData.avg_rating}점` : ''})`}
+        size="small"
+        style={{ marginBottom: 16 }}
+        loading={reviewsLoading}
+      >
+        <Table
+          rowKey="id"
+          dataSource={reviewsData?.items ?? []}
+          size="small"
+          pagination={reviewsData?.total > 10 ? {
+            current: reviewPage,
+            total: reviewsData?.total ?? 0,
+            pageSize: 10,
+            onChange: setReviewPage,
+            size: 'small',
+          } : false}
+          columns={[
+            {
+              title: '작성자',
+              dataIndex: 'nickname',
+              width: 100,
+              render: (v: string, record: any) => (
+                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate(`/users/${record.user_id}`)}>{v}</Button>
+              ),
+            },
+            { title: '코드', dataIndex: 'user_code', width: 85 },
+            {
+              title: '평점',
+              dataIndex: 'rating',
+              width: 130,
+              render: (v: number) => <Rate disabled value={v} style={{ fontSize: 14 }} />,
+            },
+            { title: '내용', dataIndex: 'content', ellipsis: true, render: (v: string) => v || '-' },
+            {
+              title: '답변',
+              dataIndex: 'creator_reply',
+              width: 100,
+              ellipsis: true,
+              render: (v: string) => v ? <Tag color="blue">답변 있음</Tag> : '-',
+            },
+            {
+              title: '일시',
+              dataIndex: 'created_at',
+              width: 130,
+              render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
+            },
+            {
+              title: '',
+              width: 50,
+              render: (_: any, record: any) => (
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => Modal.confirm({
+                    title: '이 리뷰를 삭제하시겠습니까?',
+                    okText: '삭제',
+                    cancelText: '취소',
+                    onOk: () => deleteReviewMutation.mutateAsync(record.id),
+                  })}
+                />
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <Card title="최근 런 기록" size="small">
         <Table

@@ -15,7 +15,6 @@ import CrewDetailPage from './pages/CrewDetailPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
-import ReviewsPage from './pages/ReviewsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ChangelogPage from './pages/ChangelogPage';
 
@@ -54,7 +53,6 @@ export default function App() {
         <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
-        <Route path="/reviews" element={<ReviewsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/changelog" element={<ChangelogPage />} />
       </Route>

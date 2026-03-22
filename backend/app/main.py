@@ -7,7 +7,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.db import engine
 from app.models import Base
-from app.routes import auth, dashboard, users, courses, runs, announcements, crews, changelogs, events, reviews, notifications
+from app.routes import auth, dashboard, users, courses, runs, announcements, crews, changelogs, events, notifications
 
 
 @asynccontextmanager
@@ -49,7 +49,6 @@ app.include_router(announcements.router)
 app.include_router(crews.router)
 app.include_router(changelogs.router)
 app.include_router(events.router)
-app.include_router(reviews.router)
 app.include_router(notifications.router)
 
 

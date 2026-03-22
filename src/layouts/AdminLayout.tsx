@@ -9,7 +9,6 @@ import {
   TeamOutlined,
   NotificationOutlined,
   CalendarOutlined,
-  StarOutlined,
   BellOutlined,
   HistoryOutlined,
   LogoutOutlined,
@@ -35,7 +34,6 @@ const menuItems = [
   { key: '/crews', icon: <TeamOutlined />, label: '크루' },
   { key: '/announcements', icon: <NotificationOutlined />, label: '공지사항' },
   { key: '/events', icon: <CalendarOutlined />, label: '이벤트' },
-  { key: '/reviews', icon: <StarOutlined />, label: '리뷰' },
   { key: '/notifications', icon: <BellOutlined />, label: '알림' },
   { key: '/changelog', icon: <HistoryOutlined />, label: '변경 로그' },
 ];

@@ -91,6 +91,60 @@ async def get_course(_admin: CurrentAdmin, db: DbSession, course_id: str):
     }
 
 
+@router.get("/{course_id}/reviews")
+async def get_course_reviews(
+    _admin: CurrentAdmin, db: DbSession, course_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    offset = (page - 1) * limit
+
+    reviews = await db.execute(text("""
+        SELECT r.id, r.rating, r.content, r.creator_reply, r.created_at,
+               u.id as user_id, u.nickname, u.user_code
+        FROM reviews r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.course_id = :course_id
+        ORDER BY r.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """), {"course_id": course_id, "limit": limit, "offset": offset})
+
+    count = await db.execute(text(
+        "SELECT COUNT(*) FROM reviews WHERE course_id = :course_id"
+    ), {"course_id": course_id})
+
+    avg = await db.execute(text(
+        "SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE course_id = :course_id"
+    ), {"course_id": course_id})
+
+    return {
+        "items": [dict(r._mapping) for r in reviews.all()],
+        "total": count.scalar_one(),
+        "avg_rating": round(float(avg.scalar_one()), 1),
+        "page": page,
+        "limit": limit,
+    }
+
+
+@router.delete("/{course_id}/reviews/{review_id}")
+async def delete_course_review(
+    course_id: str, review_id: str,
+    admin: CurrentAdmin, db: DbSession, request: Request,
+):
+    row = await db.execute(text(
+        "SELECT id FROM reviews WHERE id = :id AND course_id = :course_id"
+    ), {"id": review_id, "course_id": course_id})
+
+    if not row.first():
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    await db.execute(text("DELETE FROM reviews WHERE id = :id"), {"id": review_id})
+    await db.commit()
+    await log_audit(db, admin, "review.delete", request, "review", review_id)
+
+    return {"message": "Review deleted"}
+
+
 @router.post("/{course_id}/toggle-public")
 async def toggle_public(course_id: str, admin: CurrentAdmin, db: DbSession, request: Request):
     result = await db.execute(text("""
