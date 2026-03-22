@@ -110,42 +110,34 @@ export default function CrewDetailPage() {
     },
   ];
 
-  const renderPostContent = (item: any) => {
-    if (item.admin_deleted_at) {
-      return (
-        <div>
-          <Alert
-            type="error"
-            showIcon
-            message="관리자에 의해 삭제된 게시물입니다."
-            description={<>삭제 사유: {item.admin_delete_reason}<br />삭제일: {dayjs(item.admin_deleted_at).format('YYYY-MM-DD HH:mm')}</>}
-            style={{ marginBottom: 4 }}
-          />
-          <Text type="secondary" style={{ fontSize: 12 }}>{item.nickname} · {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}</Text>
-        </div>
-      );
-    }
-
-    return (
+  const renderPostContent = (item: any) => (
+    <div>
+      {item.admin_deleted_at && (
+        <Alert
+          type="error"
+          showIcon
+          message={`삭제됨 — ${item.admin_delete_reason}`}
+          description={`삭제일: ${dayjs(item.admin_deleted_at).format('YYYY-MM-DD HH:mm')}`}
+          style={{ marginBottom: 8, padding: '4px 8px' }}
+        />
+      )}
+      {item.title && <div style={{ fontWeight: 500, marginBottom: 4 }}>{item.title}</div>}
+      <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 4 }}>{item.content}</Paragraph>
+      {(item.image_urls?.length > 0 || item.image_url) && (
+        <Space size={4} style={{ marginBottom: 4 }}>
+          <PictureOutlined />
+          <Image.PreviewGroup>
+            {(item.image_urls || [item.image_url]).filter(Boolean).map((url: string, i: number) => (
+              <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
+            ))}
+          </Image.PreviewGroup>
+        </Space>
+      )}
       <div>
-        {item.title && <div style={{ fontWeight: 500, marginBottom: 4 }}>{item.title}</div>}
-        <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 4 }}>{item.content}</Paragraph>
-        {(item.image_urls?.length > 0 || item.image_url) && (
-          <Space size={4} style={{ marginBottom: 4 }}>
-            <PictureOutlined />
-            <Image.PreviewGroup>
-              {(item.image_urls || [item.image_url]).filter(Boolean).map((url: string, i: number) => (
-                <Image key={i} src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
-              ))}
-            </Image.PreviewGroup>
-          </Space>
-        )}
-        <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}</Text>
-        </div>
+        <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}</Text>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
     <div>
@@ -293,20 +285,18 @@ export default function CrewDetailPage() {
                   </Space>
                 }
                 description={
-                  c.admin_deleted_at ? (
-                    <Alert
-                      type="error"
-                      showIcon
-                      message="관리자에 의해 삭제된 댓글입니다."
-                      description={`삭제 사유: ${c.admin_delete_reason}`}
-                      style={{ padding: '4px 8px' }}
-                    />
-                  ) : (
-                    <div>
-                      <div>{c.content}</div>
-                      <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(c.created_at).format('YYYY-MM-DD HH:mm')}</Text>
-                    </div>
-                  )
+                  <div>
+                    {c.admin_deleted_at && (
+                      <Alert
+                        type="error"
+                        showIcon
+                        message={`삭제됨 — ${c.admin_delete_reason}`}
+                        style={{ padding: '4px 8px', marginBottom: 4 }}
+                      />
+                    )}
+                    <div>{c.content}</div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(c.created_at).format('YYYY-MM-DD HH:mm')}</Text>
+                  </div>
                 }
               />
             </List.Item>
@@ -330,7 +320,7 @@ export default function CrewDetailPage() {
       >
         <div style={{ marginBottom: 12 }}>
           <Text type="secondary">삭제 대상 내용:</Text>
-          <div style={{ background: '#f5f5f5', padding: 8, borderRadius: 4, marginTop: 4 }}>
+          <div style={{ background: 'rgba(255,255,255,0.08)', padding: 8, borderRadius: 4, marginTop: 4 }}>
             <Paragraph ellipsis={{ rows: 2 }} style={{ margin: 0 }}>{deleteModal?.content}</Paragraph>
           </div>
         </div>
