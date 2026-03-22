@@ -241,6 +241,7 @@ export default function CrewDetailPage() {
                     <Text type="secondary" style={{ fontSize: 12 }}>{item.user_code}</Text>
                     <Tag>{item.post_type}</Tag>
                     {item.admin_deleted_at && <Tag color="red">관리자 삭제</Tag>}
+                    {!item.admin_deleted_at && !item.is_active && <Tag color="orange">비공개</Tag>}
                   </Space>
                 }
                 description={renderPostContent(item)}
