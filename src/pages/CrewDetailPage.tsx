@@ -87,7 +87,14 @@ export default function CrewDetailPage() {
   if (!data) return null;
 
   const memberColumns = [
-    { title: '닉네임', dataIndex: 'nickname', width: 120 },
+    {
+      title: '닉네임',
+      dataIndex: 'nickname',
+      width: 120,
+      render: (v: string, record: any) => (
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate(`/users/${record.user_id}`)}>{v}</Button>
+      ),
+    },
     { title: '코드', dataIndex: 'user_code', width: 100 },
     {
       title: '역할',
@@ -183,7 +190,7 @@ export default function CrewDetailPage() {
 
       <Card title={`멤버 (${data.members?.length ?? 0}명)`} size="small" style={{ marginBottom: 16 }}>
         <Table
-          rowKey={(record: any) => `${record.nickname}-${record.user_code}`}
+          rowKey="user_id"
           columns={memberColumns}
           dataSource={data.members ?? []}
           pagination={false}

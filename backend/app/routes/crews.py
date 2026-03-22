@@ -67,7 +67,7 @@ async def get_crew(_admin: CurrentAdmin, db: DbSession, crew_id: str):
         raise HTTPException(status_code=404, detail="Crew not found")
 
     members = await db.execute(text("""
-        SELECT cm.role, cm.joined_at, u.nickname, u.user_code
+        SELECT u.id as user_id, cm.role, cm.joined_at, u.nickname, u.user_code
         FROM crew_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.crew_id = :id
