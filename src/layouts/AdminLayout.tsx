@@ -1,9 +1,6 @@
-import {
-  BugOutlined, useState, useEffect } from 'react';
-import {
-  BugOutlined, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  BugOutlined, Layout, Menu, Button, Avatar, Dropdown, Typography, Drawer, Grid } from 'antd';
+import { useState, useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Layout, Menu, Button, Avatar, Dropdown, Typography, Drawer, Grid } from 'antd';
 import {
   BugOutlined,
   DashboardOutlined,
