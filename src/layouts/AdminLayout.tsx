@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Dropdown, Typography, Drawer, Grid } from 'antd';
 import {
+  BugOutlined, useState, useEffect } from 'react';
+import {
+  BugOutlined, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import {
+  BugOutlined, Layout, Menu, Button, Avatar, Dropdown, Typography, Drawer, Grid } from 'antd';
+import {
+  BugOutlined,
   DashboardOutlined,
   UserOutlined,
   EnvironmentOutlined,
@@ -36,6 +40,7 @@ const menuItems = [
   { key: '/events', icon: <CalendarOutlined />, label: '이벤트' },
   { key: '/notifications', icon: <BellOutlined />, label: '알림' },
   { key: '/changelog', icon: <HistoryOutlined />, label: '변경 로그' },
+  { key: '/errors', icon: <BugOutlined />, label: '에러 모니터링' },
 ];
 
 export default function AdminLayout({ admin, onLogout }: Props) {

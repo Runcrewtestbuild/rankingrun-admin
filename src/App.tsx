@@ -17,6 +17,7 @@ import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ChangelogPage from './pages/ChangelogPage';
+import ErrorLogsPage from './pages/ErrorLogsPage';
 
 export default function App() {
   const { admin, loading, login, logout, isAuthenticated } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/changelog" element={<ChangelogPage />} />
+        <Route path="/errors" element={<ErrorLogsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
